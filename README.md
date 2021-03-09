@@ -1,3 +1,4 @@
+
 # flynetDemo
 repository for the FlyNet Demo
 
@@ -28,4 +29,5 @@ To Do List:
 --Update data structures in communications with necessary information
 --etc. etc. etc
 
-
+Current architecture plan:
+![FlyNet_sim_architecture(5)](https://user-images.githubusercontent.com/30157582/110546554-a13a5280-80fc-11eb-8abc-c3d5748df624.png)
