@@ -24,7 +24,8 @@ In addition to WAN, set	up a 1Gbps LAN between core and	workers	on 192.168.125.0
 
 Core sets up containerized rabbitMQ for message	passing	to basestation
 
-Core installs Kubernetes
+Core installs Docker, Kubernetes and CloudCore
+Workers install EdgeCore, Cri-o, Mosquitto, Docker
 
 To Do List:
 --Port web app flight and network simulation functionality to sendToBasestation, or use to replace sendToBasestation for this demo
