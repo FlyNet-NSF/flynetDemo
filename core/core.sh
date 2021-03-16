@@ -32,9 +32,9 @@ systemctl start kubelet
 hostnamectl set-hostname master-node
 
 #set aliases
-echo 192.168.125.10 master.flynetdemo.edu master-node >> /etc/hosts
-echo 192.168.125.11 worker1.flynetdemo.edu worker-node1 >> /etc/hosts
-echo 192.168.125.12 worker2.flynetdemo.edu worker-node2 >> /etc/hosts
+echo 192.168.125.10 master.flynetdemo.edu master-node node0 master0 submit0 core0 core >> /etc/hosts
+echo 192.168.125.11 worker1.flynetdemo.edu worker-node1 node1 worker1 >> /etc/hosts
+echo 192.168.125.12 worker2.flynetdemo.edu worker-node2 node2 worker2 >> /etc/hosts
 
 #open firewall holes for kubernetes and rabbitmq
 systemctl enable firewalld
