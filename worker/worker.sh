@@ -4,6 +4,7 @@ yum install -y yum-utils device-mapper-persistent-data lvm2 gcc zlib-devel opens
 
 #add user
 adduser -d /home/worker -m worker
+echo 'worker ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 #install docker
 yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
@@ -32,69 +33,38 @@ tar -xzf mosquitto-2.0.9.tar.gz
 cd mosquitto-2.0.9
 make && make install
 
-#install docker-compose
-#curl -L "https://github.com/docker/compose/releases/download/1.28.5/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-#chmod +x /usr/local/bin/docker-compose
-
-#install kubernetes
-cat <<EOF > /etc/yum.repos.d/kubernetes.repo
-[kubernetes]
-name=Kubernetes
-baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
-enabled=1
-gpgcheck=1
-repo_gpgcheck=1
-gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOF
-yum install -y kubelet kubeadm kubectl
-systemctl enable kubelet
-systemctl start kubelet
-hostnamectl set-hostname core0
+#install keadm
+/bin/su - worker -c "mkdir bin"
+/bin/su - worker -c "/usr/bin/wget https://github.com/kubeedge/kubeedge/releases/download/v1.6.0/keadm-v1.6.0-linux-amd64.tar.gz; tar -xzf keadm-v1.6.0-linux-amd64.tar.gz; ln -s /home/worker/keadm-v1.6.0-linux-amd64/keadm/keadm /home/worker/bin/"
+##replace line below with token, generated with this command on core node:
+##/bin/su - core -c "sudo /home/core/bin/keadm gettoken --kube-config=/home/core/.kube/config"
+/bin/su - worker -c "sudo /home/worker/bin/keadm join --cloudcore-ipport=192.168.125.10:10000 --token=REPLACE_WITH_TOKEN"
 
 #set aliases
-echo 192.168.125.10 core0 >> /etc/hosts
-echo 192.168.125.11 worker1 >> /etc/hosts
-echo 192.168.125.12 worker2 >> /etc/hosts
+echo 192.168.125.10 master.flynetdemo.edu master-node node0 master0 submit0 core0 core >> /etc/hosts
+echo 192.168.125.11 worker1.flynetdemo.edu worker-node1 node1 worker1 >> /etc/hosts
+echo 192.168.125.12 worker2.flynetdemo.edu worker-node2 node2 worker2 >> /etc/hosts
 
 #open firewall holes for kubernetes and rabbitmq
-systemctl enable firewalld
-systemctl start firewalld
-firewall-cmd --permanent --add-port=2379-2380/tcp
-firewall-cmd --permanent --add-port=4369/tcp
-firewall-cmd --permanent --add-port=5671-5672/tcp
-firewall-cmd --permanent --add-port=6443/tcp
-firewall-cmd --permanent --add-port=8883/tcp
-firewall-cmd --permanent --add-port=10250/tcp
-firewall-cmd --permanent --add-port=10251/tcp
-firewall-cmd --permanent --add-port=10252/tcp
-firewall-cmd --permanent --add-port=10255/tcp
-firewall-cmd --permanent --add-port=15672/tcp
-firewall-cmd --permanent --add-port=25672/tcp
-firewall-cmd --permanent --add-port=61613-61614/tcp
-
-firewall-cmd --reload
-cat <<EOF > /etc/sysctl.d/k8s.conf
-net.bridge.bridge-nf-call-ip6tables = 1
-net.bridge.bridge-nf-call-iptables = 1
-EOF
-sysctl --system
+#systemctl enable firewalld
+#systemctl start firewalld
+#firewall-cmd --permanent --add-port=2379-2380/tcp
+#firewall-cmd --permanent --add-port=4369/tcp
+#firewall-cmd --permanent --add-port=5671-5672/tcp
+#firewall-cmd --permanent --add-port=6443/tcp
+#firewall-cmd --permanent --add-port=8883/tcp
+#firewall-cmd --permanent --add-port=10250/tcp
+#firewall-cmd --permanent --add-port=10251/tcp
+#firewall-cmd --permanent --add-port=10252/tcp
+#firewall-cmd --permanent --add-port=10255/tcp
+#firewall-cmd --permanent --add-port=15672/tcp
+#firewall-cmd --permanent --add-port=25672/tcp
+#firewall-cmd --permanent --add-port=61613-61614/tcp
+#firewall-cmd --reload
 
 #disable selinux
 setenforce permissive
 sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
 
-#unnecessary if getenforce==permissive, but at any rate...
-setsebool -P nis_enabled 1
 
-#disable swap (req'd for Kubernetes)
-sed -i '/swap/d' /etc/fstab
-swapoff -a
-
-#initialize kubernetes
-kubeadm init --pod-network-cidr=192.168.125.0/24
-
-/bin/su - core -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/core/docker-compose.yml"
-/bin/su - core -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/core/rabbitmq.tar; /bin/tar -xf rabbitmq.tar"
-/bin/su - core -c "/usr/local/bin/docker-compose up -d"
-#/bin/su - core -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/core/talkToBasestation.tar; /bin/tar -xf talkToBasestation.tar"
 
