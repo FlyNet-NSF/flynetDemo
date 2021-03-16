@@ -70,21 +70,26 @@ setsebool -P nis_enabled 1
 
 #disable swap (req'd for Kubernetes)
 sed -i '/swap/d' /etc/fstab
-eswapoff -a
+swapoff -a
 
 #initialize kubernetes with flannel for now
-/bin/su - core -c "sudo kubeadm init --pod-network-cidr=10.244.0.0/16"
-#/bin/su - core -c "mkdir -p /home/core/.kube"
-/bin/su - core -c "sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config"
-/bin/su - core -c "sudo chown $(id -u):$(id -g) $HOME/.kube/config"
-/bin/su - core -c "sudo kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
+/bin/su - core -c "sudo kubeadm init --apiserver-advertise-address=192.168.125.10 --pod-network-cidr=10.244.0.0/16"
+/bin/su - core -c "mkdir -p /home/core/.kube"
+/bin/su - core -c "sudo cp -i /etc/kubernetes/admin.conf /home/core/.kube/config"
+/bin/su - core -c "sudo chown core:core /home/core/.kube/config"
+/bin/su - core -c "kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
 
 #install keadm
 /bin/su - core -c "mkdir bin"
 /bin/su - core -c "/usr/bin/wget https://github.com/kubeedge/kubeedge/releases/download/v1.6.0/keadm-v1.6.0-linux-amd64.tar.gz; tar -xzf keadm-v1.6.0-linux-amd64.tar.gz; ln -s /home/core/keadm-v1.6.0-linux-amd64/keadm/keadm /home/core/bin/"
+/bin/su - core -c "sudo /home/core/bin/keadm init --advertise-address=\"192.168.125.10\" --kube-config=/home/core/.kube/config"
 
+#start rabbitMQ
 /bin/su - core -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/core/docker-compose.yml"
 /bin/su - core -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/core/rabbitmq.tar; /bin/tar -xf rabbitmq.tar"
+/bin/su - core -c "sudo systemctl restart docker" #possibly some strange bug?  
 /bin/su - core -c "/usr/local/bin/docker-compose up -d"
+
+#get codes to talk to basestation... these aren't ready yet
 #/bin/su - core -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/core/talkToBasestation.tar; /bin/tar -xf talkToBasestation.tar"
 
