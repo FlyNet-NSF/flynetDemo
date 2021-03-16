@@ -1,0 +1,142 @@
+{
+    "bindings": [
+        {
+            "arguments": {},
+            "destination": "basestation_queue",
+            "destination_type": "queue",
+            "routing_key": "#",
+            "source": "basestation_exchange",
+            "vhost": "basestation"
+        },
+        {
+            "arguments": {},
+            "destination": "drone_queue",
+            "destination_type": "queue",
+            "routing_key": "#",
+            "source": "drone_exchange",
+            "vhost": "drone"
+        }
+    ],
+    "exchanges": [
+        {
+            "arguments": {},
+            "auto_delete": false,
+            "durable": true,
+            "internal": false,
+            "name": "",
+            "type": "topic",
+            "vhost": "/"
+        },
+        {
+            "arguments": {},
+            "auto_delete": false,
+            "durable": true,
+            "internal": false,
+            "name": "basestation_exchange",
+            "type": "topic",
+            "vhost": "basestation"
+        },
+        {
+            "arguments": {},
+            "auto_delete": false,
+            "durable": true,
+            "internal": false,
+            "name": "drone_exchange",
+            "type": "topic",
+            "vhost": "drone"
+        }
+    ],
+    "global_parameters": [
+        {
+            "name": "cluster_name",
+            "value": "rabbit@rabbitmq"
+        },
+        {
+            "name": "internal_cluster_id",
+            "value": "rabbitmq-cluster-id-t9E9wLbqn21VtHcx3Lw6kw"
+        }
+    ],
+    "parameters": [],
+    "permissions": [
+        {
+            "configure": ".*",
+            "read": ".*",
+            "user": "dynamo",
+            "vhost": "/",
+            "write": ".*"
+        },
+        {
+            "configure": ".*",
+            "read": ".*",
+            "user": "guest",
+            "vhost": "/",
+            "write": ".*"
+        },
+        {
+            "configure": ".*",
+            "read": ".*",
+            "user": "dynamo",
+            "vhost": "basestation",
+            "write": ".*"
+        },
+        {
+            "configure": ".*",
+            "read": ".*",
+            "user": "dynamo",
+            "vhost": "drone",
+            "write": ".*"
+        }
+    ],
+    "policies": [],
+    "product_name": "RabbitMQ",
+    "product_version": "3.8.5",
+    "queues": [
+        {
+            "arguments": {
+                "x-queue-type": "classic"
+            },
+            "auto_delete": false,
+            "durable": true,
+            "name": "basestation_queue",
+            "vhost": "basestation"
+        },
+        {
+            "arguments": {
+                "x-queue-type": "classic"
+            },
+            "auto_delete": false,
+            "durable": true,
+            "name": "drone_queue",
+            "vhost": "drone"
+        }
+    ],
+    "rabbit_version": "3.8.5",
+    "rabbitmq_version": "3.8.5",
+    "topic_permissions": [],
+    "users": [
+        {
+            "hashing_algorithm": "rabbit_password_hashing_sha256",
+            "name": "guest",
+            "password_hash": "OIL149pXyJCqVQnL7lbcl3PDtlZAALwce0RIPkHlHLuXf6c/",
+            "tags": "administrator"
+        },
+        {
+            "hashing_algorithm": "rabbit_password_hashing_sha256",
+            "name": "dynamo",
+            "password_hash": "nXHeBJkFcCwbLtPBTYUuSuEa2/NvExc/WWqz27VZSwW1Fxwq",
+            "tags": "administrator"
+        }
+    ],
+    "vhosts": [
+        {
+            "name": "/"
+        },
+        {
+            "name": "basestation"
+        },
+        {   
+            "name": "drone"
+	} 
+    ]
+}
+
