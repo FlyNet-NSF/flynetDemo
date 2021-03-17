@@ -1,0 +1,8 @@
+## Build Container
+docker build -t motionmodule .
+
+## Run Container in Shell session
+docker run --gpus all --rm -i -v coconetinput:/coconet/dataset -v coconetoutput:/coconet/output -t motionmodule bash
+
+## Run Motion Motion module 
+./build/Motion_Module ./dataset/ ./output/

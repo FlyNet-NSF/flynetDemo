@@ -1,0 +1,49 @@
+# Drone Settings 
+
+**_ What kind of drone we use, what was the settings on each drone_**
+We collected data from a multi-hierarchical drone configuration using centralized-control
+communication networks, where we consider various mobility mod-els and different amounts of
+drones as fleets. Each drone is operated by one GCS (in our case, we only use mobile devices
+as a GCS, which install multi apps to operate separate brands of drones), and all traces and
+computation processes are controlled by one single edge server (video analyzing on machine
+learning related is asynchronized, however the other is in real-time). To simplify our
+experiments, two parts of data are considered: drone video capture data and drone trace data.
+
+On drone video capture data gathering, we collected video clips from 3 types of drones (DJI
+Phantom3 ([specs](​https://www.dji.com/phantom-3-standard​)), DJI Mavic 2 ([specs](
+https://www.dji.com/mavic-2/info#specs​)) and [Parrot Drone](https://github.com/jmodares/UB-ANC-Emulator) (on drone simulator
+​), each with 3 different mobility settings (i.e.,
+mission-based plan model, Gaussian-Markov model and random model).
+
+Drone video clips are transmitted to GCS via a simple, reliable and widely available data link,
+such as IEEE 802.11. (Default in each drone - WiFi connection)
+
+Part of traces are formatted as JSON files and stored in a NoSQL database. We calculate
+metrics on: ​ 
+1. _the goodput through a network monitor at a GCS, and_
+2. _detailed flight traces information_ (e.g., longitude, height, speed (mph), ascent (feet)) 
+
+​For every millisecond, one throughput data point is sent from the drones to the GCS for recording/archival. In addition,
+after the real-world experiment, we calculate the PSNR for transmitted videos to validate the
+utility of our machine learning model predictions.
+
+# Drone Data
+
+**_Traces Data and Drone Captured Video Data_**
+_Drone Traces:_
+Traces in [CSV format](https://drive.google.com/file/d/1TRB_RMLw-bCtIDPM87RP81ozsrJHKMBH/view?usp=sharing)
+(We can upload and visualize the trace data from the interface tool we [develop](
+https://github.com/alicesquivel/DroneCOCoNet-Sim​))
+_[Video Data](https://missouri.box.com/s/aw13i2z34n6sst2gay957w0nc7zenacd)_
+
+# Video Analytics Dataset
+
+EDGE_DATASET:
+    - subdirectories are names of people like:
+        alice/ bob/
+    - where each subdir has many JPGS of training data of faces
+
+CLOUD_DATASET:
+    - same as EDGE_DATASET BUT many more examples of faces, used to train the cloud model
+
+

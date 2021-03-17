@@ -1,0 +1,8 @@
+## Build Container
+docker build -t trackingmodule .
+
+## Run Container in Shell session
+docker run --gpus all --rm -i -v coconetinput:/coconet/dataset -v coconetoutput:/coconet/output -t trackingmodule bash
+
+## Run Tracking Module
+./TrackingFusion ./dataset/ ./inputmotion/ ./inputdetection/ car ./output

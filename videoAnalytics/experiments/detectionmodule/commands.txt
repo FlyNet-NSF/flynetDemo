@@ -1,0 +1,8 @@
+## Build Container
+docker build -t detectionmodule .
+
+## Run Container in Shell session
+docker run --gpus all --rm -i -v coconetinput:/coconet/dataset -v coconetoutput:/coconet/output -t detectionmodule bash
+
+## Run detection Module
+./darknet detect cfg/yolov3.cfg yolov3.weights ./dataset/
