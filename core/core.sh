@@ -51,11 +51,10 @@ hostnamectl set-hostname master-node
 #set aliases
 echo $STARTIP master.flynetdemo.edu master-node node0 master0 submit0 core0 core >> /etc/hosts
 
-STARTIP=$(nextip $STARTIP)
-for i in {1..$END}; do
+for i in $(seq $WORKERS); do
+    STARTIP=$(nextip $STARTIP)
     echo $STARTIP worker$i.flynetdemo.edu worker-node$i node$i worker$i >> /etc/hosts
 done
-
 
 #open firewall holes for kubernetes and rabbitmq
 systemctl enable firewalld
