@@ -1,3 +1,20 @@
+#!/bin/bash
+if [ $# -ne 2 ]; then
+    echo "Required arguments [STARTIP] [WORKERS] not provided!"
+    exit 4
+fi
+
+STARTIP=$1
+WORKERS=$2
+
+nextip(){
+   IP=$1
+   IP_HEX=$(printf '%.2X%.2X%.2X%.2X\n' `echo $IP | sed -e 's/\./ /g'`)
+   NEXT_IP_HEX=$(printf %.8X `echo $(( 0x$IP_HEX + 1 ))`)
+   NEXT_IP=$(printf '%d.%d.%d.%d\n' `echo $NEXT_IP_HEX | sed -r 's/(..)/0x\1 /g'`)
+   echo "$NEXT_IP"
+}
+
 #yum update
 yum install -y yum-utils device-mapper-persistent-data lvm2 gcc zlib-devel openssl-devel firewalld
 #yum remove python3
@@ -32,9 +49,13 @@ systemctl start kubelet
 hostnamectl set-hostname master-node
 
 #set aliases
-echo 192.168.125.10 master.flynetdemo.edu master-node node0 master0 submit0 core0 core >> /etc/hosts
-echo 192.168.125.11 worker1.flynetdemo.edu worker-node1 node1 worker1 >> /etc/hosts
-echo 192.168.125.12 worker2.flynetdemo.edu worker-node2 node2 worker2 >> /etc/hosts
+echo $STARTIP master.flynetdemo.edu master-node node0 master0 submit0 core0 core >> /etc/hosts
+
+STARTIP=$(nextip $STARTIP)
+for i in {1..$END}; do
+    echo $STARTIP worker$i.flynetdemo.edu worker-node$i node$i worker$i >> /etc/hosts
+done
+
 
 #open firewall holes for kubernetes and rabbitmq
 systemctl enable firewalld
@@ -73,7 +94,7 @@ sed -i '/swap/d' /etc/fstab
 swapoff -a
 
 #initialize kubernetes with flannel for now
-/bin/su - core -c "sudo kubeadm init --apiserver-advertise-address=192.168.125.10 --pod-network-cidr=10.244.0.0/16"
+/bin/su - core -c "sudo kubeadm init --apiserver-advertise-address=$STARTIP --pod-network-cidr=10.244.0.0/16"
 /bin/su - core -c "mkdir -p /home/core/.kube"
 /bin/su - core -c "sudo cp -i /etc/kubernetes/admin.conf /home/core/.kube/config"
 /bin/su - core -c "sudo chown core:core /home/core/.kube/config"
@@ -82,12 +103,12 @@ swapoff -a
 #install keadm
 /bin/su - core -c "mkdir bin"
 /bin/su - core -c "/usr/bin/wget https://github.com/kubeedge/kubeedge/releases/download/v1.6.0/keadm-v1.6.0-linux-amd64.tar.gz; tar -xzf keadm-v1.6.0-linux-amd64.tar.gz; ln -s /home/core/keadm-v1.6.0-linux-amd64/keadm/keadm /home/core/bin/"
-/bin/su - core -c "sudo /home/core/bin/keadm init --advertise-address=\"192.168.125.10\" --kube-config=/home/core/.kube/config"
+/bin/su - core -c "sudo /home/core/bin/keadm init --advertise-address=\"$STARTIP\" --kube-config=/home/core/.kube/config"
 
 #start rabbitMQ
 /bin/su - core -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/core/docker-compose.yml"
 /bin/su - core -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/core/rabbitmq.tar; /bin/tar -xf rabbitmq.tar"
-/bin/su - core -c "sudo systemctl restart docker" #possibly some strange bug?  
+/bin/su - core -c "sudo systemctl restart docker" #possibly some strange bug?
 /bin/su - core -c "/usr/local/bin/docker-compose up -d"
 
 #get codes to talk to basestation... these aren't ready yet
