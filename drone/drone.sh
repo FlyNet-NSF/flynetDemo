@@ -25,6 +25,7 @@ make altinstall
 /usr/local/bin/pip3.7 install requests
 /usr/local/bin/pip3.7 install geojson
 /usr/local/bin/pip3.7 install geopy
+/bin/su - drone -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/ffmpeg.simg"
 /bin/su - drone -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/drone/listenToBasestation.tar; /bin/tar -xf listenToBasestation.tar"
 /bin/su - drone -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/drone/sendToBasestation.tar; /bin/tar -xf sendToBasestation.tar"
 
