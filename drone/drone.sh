@@ -1,6 +1,6 @@
 yum update
 yum install -y yum-utils device-mapper-persistent-data lvm2 gcc zlib-devel openssl-devel
-yum remove python3
+yum remove -y python3
 adduser -d /home/drone -m drone
 echo 'drone ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
