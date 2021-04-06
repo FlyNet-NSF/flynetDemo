@@ -61,10 +61,10 @@ make && make install
 #set aliases
 #set aliases
 echo $STARTIP master.flynetdemo.edu master-node node0 master0 submit0 core0 core >> /etc/hosts
-
+WORKERIP=$STARTIP
 for i in $(seq $WORKERS); do
-    STARTIP=$(nextip $STARTIP)
-    echo $STARTIP worker$i.flynetdemo.edu worker-node$i node$i worker$i >> /etc/hosts
+    WORKERIP=$(nextip $WORKERIP)
+    echo $WORKERIP worker$i.flynetdemo.edu worker-node$i node$i worker$i >> /etc/hosts
 done
 
 #open firewall holes for kubernetes and rabbitmq
