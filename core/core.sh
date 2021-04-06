@@ -34,7 +34,7 @@ curl -L "https://github.com/docker/compose/releases/download/1.28.5/docker-compo
 chmod +x /usr/local/bin/docker-compose
 
 #install kubernetes
-cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+eat <<EOF > /etc/yum.repos.d/kubernetes.repo
 [kubernetes]
 name=Kubernetes
 baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
@@ -59,6 +59,7 @@ done
 #open firewall holes for kubernetes and rabbitmq
 systemctl enable firewalld
 systemctl start firewalld
+firewall-cmd --permanent --add-port=22/tcp
 firewall-cmd --permanent --add-port=2379-2380/tcp
 firewall-cmd --permanent --add-port=4369/tcp
 firewall-cmd --permanent --add-port=5671-5672/tcp
