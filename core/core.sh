@@ -46,7 +46,7 @@ EOF
 yum install -y kubelet kubeadm kubectl
 systemctl enable kubelet
 systemctl start kubelet
-hostnamectl set-hostname master-node
+#hostnamectl set-hostname master-node
 
 #set aliases
 echo $STARTIP master.flynetdemo.edu master-node node0 master0 submit0 core0 core >> /etc/hosts
