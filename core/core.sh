@@ -46,35 +46,36 @@ EOF
 yum install -y kubelet kubeadm kubectl
 systemctl enable kubelet
 systemctl start kubelet
-hostnamectl set-hostname master-node
+#hostnamectl set-hostname master-node
 
 #set aliases
 echo $STARTIP master.flynetdemo.edu master-node node0 master0 submit0 core0 core >> /etc/hosts
-
+WORKERIP=$STARTIP
 for i in $(seq $WORKERS); do
-    STARTIP=$(nextip $STARTIP)
-    echo $STARTIP worker$i.flynetdemo.edu worker-node$i node$i worker$i >> /etc/hosts
+    WORKERIP=$(nextip $WORKERIP)
+    echo $WORKERIP worker$i.flynetdemo.edu worker-node$i node$i worker$i >> /etc/hosts
 done
 
 #open firewall holes for kubernetes and rabbitmq
-systemctl enable firewalld
-systemctl start firewalld
-firewall-cmd --permanent --add-port=2379-2380/tcp
-firewall-cmd --permanent --add-port=4369/tcp
-firewall-cmd --permanent --add-port=5671-5672/tcp
-firewall-cmd --permanent --add-port=6443/tcp
-firewall-cmd --permanent --add-port=8883/tcp
-firewall-cmd --permanent --add-port=10000/tcp
-firewall-cmd --permanent --add-port=10002/tcp
-firewall-cmd --permanent --add-port=10250/tcp
-firewall-cmd --permanent --add-port=10251/tcp
-firewall-cmd --permanent --add-port=10252/tcp
-firewall-cmd --permanent --add-port=10255/tcp
-firewall-cmd --permanent --add-port=15672/tcp
-firewall-cmd --permanent --add-port=25672/tcp
-firewall-cmd --permanent --add-port=61613-61614/tcp
+#systemctl enable firewalld
+#systemctl start firewalld
+#firewall-cmd --permanent --add-port=22/tcp
+#firewall-cmd --permanent --add-port=2379-2380/tcp
+#firewall-cmd --permanent --add-port=4369/tcp
+#firewall-cmd --permanent --add-port=5671-5672/tcp
+#firewall-cmd --permanent --add-port=6443/tcp
+#firewall-cmd --permanent --add-port=8883/tcp
+#firewall-cmd --permanent --add-port=10000/tcp
+#firewall-cmd --permanent --add-port=10002/tcp
+#firewall-cmd --permanent --add-port=10250/tcp
+#firewall-cmd --permanent --add-port=10251/tcp
+#firewall-cmd --permanent --add-port=10252/tcp
+#firewall-cmd --permanent --add-port=10255/tcp
+#firewall-cmd --permanent --add-port=15672/tcp
+#firewall-cmd --permanent --add-port=25672/tcp
+#firewall-cmd --permanent --add-port=61613-61614/tcp
 
-firewall-cmd --reload
+#firewall-cmd --reload
 cat <<EOF > /etc/sysctl.d/k8s.conf
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
