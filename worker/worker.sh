@@ -53,6 +53,7 @@ make && make install
 #install keadm
 /bin/su - worker -c "mkdir bin"
 /bin/su - worker -c "/usr/bin/wget https://github.com/kubeedge/kubeedge/releases/download/v1.6.0/keadm-v1.6.0-linux-amd64.tar.gz; tar -xzf keadm-v1.6.0-linux-amd64.tar.gz; ln -s /home/worker/keadm-v1.6.0-linux-amd64/keadm/keadm /home/worker/bin/"
+cp /etc/kubedge/edgecore /usr/local/bin/edgecore
 ##replace line below with token, generated with this command on core node:
 ##/bin/su - core -c "sudo /home/core/bin/keadm gettoken --kube-config=/home/core/.kube/config"
 #commenting out this line for now and just going to echo a reminder at the end of the script.
