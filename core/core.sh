@@ -103,7 +103,6 @@ swapoff -a
 #install keadm
 /bin/su - core -c "mkdir bin"
 /bin/su - core -c "/usr/bin/wget https://github.com/kubeedge/kubeedge/releases/download/v1.6.0/keadm-v1.6.0-linux-amd64.tar.gz; tar -xzf keadm-v1.6.0-linux-amd64.tar.gz; ln -s /home/core/keadm-v1.6.0-linux-amd64/keadm/keadm /home/core/bin/"
-cp /etc/kubedge/edgecore to /usr/local/bin/edgecore
 /bin/su - core -c "sudo /home/core/bin/keadm init --advertise-address=\"$STARTIP\" --kube-config=/home/core/.kube/config"
 
 #start rabbitMQ
