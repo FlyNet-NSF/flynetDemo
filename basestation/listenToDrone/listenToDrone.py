@@ -16,6 +16,7 @@ from geopy.distance import lonlat, distance
 from geopy import Point
 from geographiclib.geodesic import Geodesic
 from distutils.util import strtobool
+from collections import defaultdict
 
 def readConfig(file):
   config = configparser.ConfigParser()
@@ -34,11 +35,37 @@ def main(args):
   dronechannel = droneconnection.channel()
   dronechannel.queue_declare(queue=args.drone_queue, durable=True)
 
+  ground_stations = []
+
   def callback(ch, method, properties, body):
     droneData = json.loads(body)
     print(" [x] Received %s" % droneData)
     droneLL = (droneData['longitude'], droneData['latitude'])
     droneBatteryLife = droneData['batterylife']
+
+    nonlocal ground_stations
+    ground_stations = generateGroundStations(droneLL, ground_stations)
+    # In the medium-term ground stations should be sent to the drone, who can test RTT directly off of cell towers, and return results
+
+    towers = droneData['celltowers']
+    graph = calculateWeights(towers, ground_stations)
+    rtt, prevs = shortestPath(graph, "drone")
+
+    max_val = float('inf')
+    max_element = None
+    for node in rtt:
+      if node.startswith("gs-"):
+        max_val = rtt[node]
+        max_element = node
+    
+    station_to_use = max_element
+    path_to_use = getPath(prevs, station_to_use)
+
+    basestationData = {}
+    basestationData['network'] = path_to_use
+    submitToDrone(args, dronechannel, basestationData)
+
+    """
     droneNetworks = droneData['networkConnections']
     maxCellUtility = 0
     bestNetwork = None
@@ -66,6 +93,7 @@ def main(args):
       submitToDrone(args, dronechannel, basestationData)
     else:
       print("no networks to use... don't process this data")
+    """
 
   basechannel.basic_consume(queue=args.basestation_queue,
                         auto_ack=True,
@@ -73,6 +101,96 @@ def main(args):
 
   print(' [*] Waiting for messages. ')
   basechannel.start_consuming()
+
+def calculateWeights(towers, stations):
+  graph = defaultdict(list)
+  for tower in towers:
+    for station in stations:
+      # SIMULATION (weight calculation)
+      tower_to_gs = Geodesic.WGS84.Inverse(tower['latitude'], tower['longitude'], station['latitude'], station['longitude'])
+      tower_to_gs_distance = tower_to_gs['s12']
+      rtt = tower_to_gs_distance + random.randint(-20, 20)  # calculate RTT with some randomness
+      # END SIMULATION
+
+      graph[tower['id']].append((station['id'], rtt / 2))  # add path to graph
+      graph[station['id']].append((tower['id'], rtt / 2))
+    
+    graph['drone'].append((tower['id'], tower['rtt'] / 2))  # add drone node
+    graph[tower['id']].append(("drone", tower['rtt'] / 2))  # add drone node
+
+  return graph
+
+def shortestPath(graph, startNode):
+  # get unique nodes
+  nodes = list(graph.keys())
+  distance = dict.fromkeys(graph, float('inf'))  # values set to inf by default
+  prev = dict.fromkeys(graph, "")
+
+  distance[startNode] = 0  # set starting node
+
+  while len(nodes) > 0:
+    max_val = float('inf')
+    max_element = None
+
+    for node_name in distance:
+      if distance[node_name] <= max_val and node_name in nodes:
+        max_val = distance[node_name]
+        max_element = node_name
+    
+    node = max_element
+
+    nodes.remove(node)
+    
+    neighbors = graph[node]
+
+    # find node paths
+    for next_neighbor in neighbors:
+      next_label = next_neighbor[0]
+      weight = distance[node] + next_neighbor[1]
+
+      if weight < distance[next_label] and next_label in nodes:
+        distance[next_label] = weight
+        prev[next_label] = node
+
+  return distance, prev
+
+def getPath(prev, destinationNode):
+  out = []
+  currentNode = destinationNode
+  out.append(currentNode)
+
+  while prev[currentNode] != "":
+    out.append(prev[currentNode])
+    currentNode = prev[currentNode]
+
+  return out
+
+def generateGroundStations(location, existing = []):
+  count = 10
+  location_delta = 0.1
+  loc_lat = location[1]
+  loc_long = location[0]
+
+  min_long = loc_long - location_delta
+  max_long = loc_long + location_delta
+  min_lat = loc_lat - location_delta
+  max_lat = loc_lat + location_delta
+
+  # remove out of range stations
+  for station in existing:
+    if station['longitude'] < min_long or station['longitude'] > max_long or station['latitude'] < min_lat or station['latitude'] > max_lat:
+      existing.remove(station)
+
+  out = existing
+  # add stations if needed
+  if len(existing) < count:
+    for i in range(count - len(existing)):
+      longitude = min_long + random.random() * 2 * location_delta
+      latitude = min_lat + random.random() * 2 * location_delta
+      out.append({'id': "gs" + str(longitude) + "-" + str(latitude), 'longitude': longitude, 'latitude': latitude})  # add in a new random ground station
+
+  return out
+
 
 def getTowerInfo(thisNetworkName):
   #not used at present, but if we wanted to do the simulated network overlay here on the basestation side instead of the web app, this could be useful

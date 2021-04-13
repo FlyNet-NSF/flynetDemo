@@ -17,6 +17,9 @@ from geopy import Point
 from geographiclib.geodesic import Geodesic
 from distutils.util import strtobool
 
+# constants
+networks = ("verizon", "att", "sprint", "comcast")
+
 def readConfig(file):
   config = configparser.ConfigParser()
   config.read(os.path.join(os.path.dirname(__file__), file))
@@ -32,23 +35,39 @@ def main(args):
   currentLon = -96.0
   currentBattery = random.randint(50, 100)
   endless = 0
+
+  cell_towers = []
+
   while currentBattery > 10:
     droneData = {}
+    """
     networkConnections = []
     network_a = {'network': 'att', 'distanceM': random.randint(500, 4000) }
     network_b = {'network': 'verizon', 'distanceM': random.randint(500, 4000) }
     networkConnections.append(network_a)
     networkConnections.append(network_b)
+    droneData['networkConnections'] = networkConnections
+    """
     
     droneData['latitude'] = currentLat
     droneData['longitude'] = currentLon
+    droneData['batterylife'] = currentBattery
+
+    cell_towers = generateCellTowers({'latitude': currentLat, 'longitude': currentLon}, cell_towers)  # regenerate cell towers
+
+    for tower in cell_towers:
+      towerDistanceCalc = Geodesic.WGS84.Inverse(currentLat, currentLon, tower['latitude'], tower['longitude'])
+      towerDistance = towerDistanceCalc['s12']
+      rtt = towerDistance + random.randint(-20, 20)  # calculate RTT with some randomness
+      tower['rtt'] = rtt
+
+    droneData['celltowers'] = cell_towers
+
+    # flight simulation
     currentLat = currentLat + .01
     currentLon = currentLon - .01
-    
-    droneData['batterylife'] = currentBattery
+
     currentBattery = currentBattery - 1
-    
-    droneData['networkConnections'] = networkConnections
 
     #print(droneData)
     #droneMessage = str(droneData, 'utf-8')
@@ -60,6 +79,31 @@ def main(args):
   print("Flight is complete.  Exiting")
   sys.exit()
   
+def generateCellTowers(location, existing = []):
+  count = 4
+  location_delta = 0.01
+  loc_lat = location['latitude']
+  loc_long = location['longitude']
+  min_long = loc_long - location_delta
+  max_long = loc_long + location_delta
+  min_lat = loc_lat - location_delta
+  max_lat = loc_lat + location_delta
+
+  # remove out of range cell towers
+  for tower in existing:
+    if tower['longitude'] < min_long or tower['longitude'] > max_long or tower['latitude'] < min_lat or tower['latitude'] > max_lat:
+      existing.remove(tower)
+
+  out = existing
+  # add stations if needed
+  if len(existing) < count:
+    for i in range(count - len(existing)):
+      longitude = min_long + random.random() * 2 * location_delta
+      latitude = min_lat + random.random() * 2 * location_delta
+      out.append({'id': "ct" + str(longitude) + "-" + str(latitude), 'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)})  # add in a new random ground station
+
+  return out
+
 def handleArguments(properties):
   parser = ArgumentParser()
   parser.add_argument("-u", "--rabbituser", dest="rabbituser", default=properties['rabbituser'],
