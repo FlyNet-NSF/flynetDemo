@@ -26,17 +26,20 @@ def main(args):
   droneconnection = pika.BlockingConnection(pika.ConnectionParameters(host=args.drone_host, virtual_host=args.drone_vhost, credentials=credentials))
   dronechannel = droneconnection.channel()
   dronechannel.queue_declare(queue=args.drone_queue, durable=True)
-  outgoingDevice = "eth0"
+  #outgoingDevice = "eth0"
   
   def callback(ch, method, properties, body):
     basestationCommand = json.loads(body)
     print(" [x] Received %s" % basestationCommand)
-    addedLatency = basestationCommand['latency']
-    rateLimit = basestationCommand['rate']
-    network = basestationCommand['network']
-    networkModification = "sudo tc qdisc replace dev " + outgoingDevice + " root netem delay " + str(addedLatency) + "ms rate " + str(rateLimit) + "Mbit"
-    print(networkModification)
-    os.system(networkModification)
+    #addedLatency = basestationCommand['latency']
+    #rateLimit = basestationCommand['rate']
+    #network = basestationCommand['network']
+    #networkModification = "sudo tc qdisc replace dev " + outgoingDevice + " root netem delay " + str(addedLatency) + "ms rate " + str(rateLimit) + "Mbit"
+    #print(networkModification)
+    #os.system(networkModification)
+    path = basestationCommand['network']
+    print("Using path " + str(path))
+
     #now send video to somewhere
 
   dronechannel.basic_consume(queue=args.drone_queue,
