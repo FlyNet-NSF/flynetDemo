@@ -61,9 +61,11 @@ def main(args):
     station_to_use = max_element
     path_to_use = getPath(prevs, station_to_use)
 
-    print(station_to_use)
-    print(path_to_use)
+    basestationData = {}
+    basestationData['network'] = path_to_use
+    submitToDrone(args, dronechannel, basestationData)
 
+    """
     droneNetworks = droneData['networkConnections']
     maxCellUtility = 0
     bestNetwork = None
@@ -91,6 +93,7 @@ def main(args):
       submitToDrone(args, dronechannel, basestationData)
     else:
       print("no networks to use... don't process this data")
+    """
 
   basechannel.basic_consume(queue=args.basestation_queue,
                         auto_ack=True,
@@ -154,8 +157,9 @@ def shortestPath(graph, startNode):
 def getPath(prev, destinationNode):
   out = []
   currentNode = destinationNode
+  out.append(currentNode)
 
-  while currentNode != "":
+  while prev[currentNode] != "":
     out.append(prev[currentNode])
     currentNode = prev[currentNode]
 
