@@ -31,12 +31,14 @@ def main(args):
   def callback(ch, method, properties, body):
     basestationCommand = json.loads(body)
     print(" [x] Received %s" % basestationCommand)
-    addedLatency = basestationCommand['latency']
-    rateLimit = basestationCommand['rate']
-    network = basestationCommand['network']
+    #addedLatency = basestationCommand['latency']
+    #rateLimit = basestationCommand['rate']
+    #network = basestationCommand['network']
     #networkModification = "sudo tc qdisc replace dev " + outgoingDevice + " root netem delay " + str(addedLatency) + "ms rate " + str(rateLimit) + "Mbit"
     #print(networkModification)
     #os.system(networkModification)
+    path = basestationCommand['network']
+    print("Using path " + str(path))
 
     #now send video to somewhere
 
