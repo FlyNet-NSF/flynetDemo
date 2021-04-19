@@ -24,10 +24,17 @@ spec:
       - name: ffmpeg4 
         image: jrottenberg/ffmpeg
         imagePullPolicy: Always
-        command: ["ffmpeg", "-i", "udp://127.0.0.1:23000", "-c", "copy", "-flags", "+global_header", "-f", "segment", "-segment_time", "10", "-segment_format_options", "movflags=+faststart", "-reset_timestamps", "1", "test%d.mp4"]
+        command: ["ffmpeg", "-i", "udp://127.0.0.1:23000", "-c", "copy", "-flags", "+global_header", "-f", "segment", "-segment_time", "10", "-segment_format_options", "movflags=+faststart", "-reset_timestamps", "1", "/tmp/workdir/video/test%d.mp4"]
         ports:
           - containerPort: 23000
             hostPort: 23000 
+        volumeMounts:
+          - name: output
+            mountPath: /tmp/workdir/video
       hostNetwork: true 
 #      dnsPolicy: ClusterFirstWithHostNet
       restartPolicy: Always
+      volumes: 
+        - name: output
+          hostPath:
+            path: /output/ffmpeg4
