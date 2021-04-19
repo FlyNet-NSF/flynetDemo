@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yolo-processing
+  labels: 
+    app: yolo 
+    tier: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      app: yolo 
+      tier: server
+  template:
+    metadata:
+      labels:
+        app: yolo
+        tier: server
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        nodePool: worker2
+      containers:
+      - name: yolo 
+        image: kthare10/video_client
+        imagePullPolicy: Always
+        env:
+          - name: SERVER
+            value: "192.168.135.12:5000"
+        volumeMounts:
+          - name: input 
+            mountPath: /input/
+          - name: output 
+            mountPath: /output/
+      hostNetwork: true 
+#      dnsPolicy: ClusterFirstWithHostNet
+      restartPolicy: Always
+      volumes: 
+        - name: input 
+          hostPath:
+            path: /output/ffmpeg4
+        - name: output 
+          hostPath:
+            path: /output/client
