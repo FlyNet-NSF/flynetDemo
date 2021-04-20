@@ -1,0 +1,6 @@
+pika
+requests
+geojson
+geopy
+opencv-python
+numpy
