@@ -36,5 +36,6 @@ To Do List:
 --etc. etc. etc
 
 Current architecture plan:
-![FlyNet_sim_architecture_v3_3-16-21](https://user-images.githubusercontent.com/30157582/111386590-d6a5e980-8682-11eb-8df5-d8b3fed2333a.png)
+![Flynet_sim_architecture_5_7_2021](https://user-images.githubusercontent.com/30157582/117478088-b7ae3000-af2c-11eb-974c-217bcba56dec.png)
+
 
