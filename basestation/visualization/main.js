@@ -9,7 +9,7 @@ function getPixelsFromLat(lat, drone_lat) {
 
 function getPixelsFromLon(lon, drone_lon) {
     var lon_delta = drone_lon - lon;
-    var lon_pixels = lon_delta * latlonFactor;
+    var lon_pixels = lon_delta * latlonFactor * -1;
 
     return lon_pixels;
 }
@@ -78,7 +78,7 @@ function populateLonLines(drone_lon) {
 
     for (var i = 0; i <= 10; i++) {
         current_lon = Math.round(current_lon * 10) / 10;
-        var pixels = getPixelsFromLat(current_lon, drone_lon);
+        var pixels = getPixelsFromLon(current_lon, drone_lon);
         var new_line = "<div style='left: " + pixels + "px' class='lon_line clearable'><span>" + current_lon + "</span></div>";
 
         addDroneObject(new_line);
@@ -88,8 +88,8 @@ function populateLonLines(drone_lon) {
 }
 
 function addTower(tower_lat, tower_lon) {
-    tower_width_pxl = getPixelsFromLat(tower_lat, drone_lat_last);
-    tower_height_pxl = getPixelsFromLon(tower_lon, drone_lon_last);
+    tower_width_pxl = getPixelsFromLat(tower_lat, drone_lat_last) * -1;
+    tower_height_pxl = getPixelsFromLon(tower_lon, drone_lon_last) * -1;
 
     var tower = "<div style='left: " + tower_width_pxl + "; top: " + tower_height_pxl + ";' class='ctower clearable'><img src='assets/tower.png'></div>"
 
