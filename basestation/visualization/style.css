@@ -13,8 +13,17 @@ body > * {
     transform: translate(-50%, -50%);
 }
 
+.lat_line {
+    position: absolute;
+    height: 0px;
+    width: 100vw;
+    border: 1px dashed gray;
+    margin-left: calc(-50vw + 26px);
+}
+
 #drone {
     z-index: 100;
+    overflow: visible;
 }
 
 #drone > img {

@@ -1,3 +1,30 @@
+var latlonFactor = 1000;  // 100px per 0.1 lat or 0.1 lon
+
+function getPixelsFromLat(lat) {
+    var drone = $("#drone");
+
+    var drone_lat = getDroneLat();
+
+    var lat_delta = drone_lat - lat;
+    var lat_pixels = lat_delta * latlonFactor;
+
+    return lat_pixels;
+}
+
+function getPixelsFromLon(lon) {
+
+}
+
+function getDroneLat() {
+    var drone_info = $("#drone_info .lat_input");
+    return parseFloat(drone_info.text());
+}
+
+function getDroneLon() {
+    var drone_info = $("#drone_info .lon_input");
+    return parseFloat(drone_info.text());
+}
+
 function clearObjects() {
     $(".object").remove();
 }
@@ -13,11 +40,29 @@ function setDroneHeading(heading) {
 function setDroneLat(lat) {
     var drone_info = $("#drone_info .lat_input");
     drone_info.text(lat);
+
+    populateLatLines();
 }
 
 function setDroneLon(lon) {
     var drone_info = $("#drone_info .lon_input");
     drone_info.text(lon);
+}
+
+function populateLatLines() {
+    var drone_lat = getDroneLat();
+    var current_lat = (Math.round(drone_lat * 10) / 10) - 0.5;
+
+    for (var i = 0; i <= 10; i++) {
+        current_lat = Math.round(current_lat * 10) / 10;
+        var pixels = getPixelsFromLat(current_lat);
+        var new_line = "<div style='top: " + pixels + "px' class='lat_line map_line'><span>" + current_lat + "</span></div>";
+
+        $("#drone").append(new_line);
+
+        current_lat += 0.1;
+    }
+    getPixelsFromLat();
 }
 
 function addTower(heading) {
