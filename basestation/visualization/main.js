@@ -1,18 +1,17 @@
 var latlonFactor = 1000;  // 100px per 0.1 lat or 0.1 lon
 
-function getPixelsFromLat(lat) {
-    var drone = $("#drone");
-
-    var drone_lat = getDroneLat();
-
+function getPixelsFromLat(lat, drone_lat) {
     var lat_delta = drone_lat - lat;
     var lat_pixels = lat_delta * latlonFactor;
 
     return lat_pixels;
 }
 
-function getPixelsFromLon(lon) {
+function getPixelsFromLon(lon, drone_lon) {
+    var lon_delta = drone_lon - lon;
+    var lon_pixels = lon_delta * latlonFactor;
 
+    return lon_pixels;
 }
 
 function getDroneLat() {
@@ -26,7 +25,7 @@ function getDroneLon() {
 }
 
 function clearObjects() {
-    $(".object").remove();
+    $(".clearable").remove();
 }
 
 function setDroneHeading(heading) {
@@ -41,28 +40,42 @@ function setDroneLat(lat) {
     var drone_info = $("#drone_info .lat_input");
     drone_info.text(lat);
 
-    populateLatLines();
+    populateLatLines(lat);
 }
 
 function setDroneLon(lon) {
     var drone_info = $("#drone_info .lon_input");
     drone_info.text(lon);
+
+    populateLonLines(lon);
 }
 
-function populateLatLines() {
-    var drone_lat = getDroneLat();
+function populateLatLines(drone_lat) {
     var current_lat = (Math.round(drone_lat * 10) / 10) - 0.5;
 
     for (var i = 0; i <= 10; i++) {
         current_lat = Math.round(current_lat * 10) / 10;
-        var pixels = getPixelsFromLat(current_lat);
-        var new_line = "<div style='top: " + pixels + "px' class='lat_line map_line'><span>" + current_lat + "</span></div>";
+        var pixels = getPixelsFromLat(current_lat, drone_lat);
+        var new_line = "<div style='top: " + pixels + "px' class='lat_line clearable'><span>" + current_lat + "</span></div>";
 
         $("#drone").append(new_line);
 
         current_lat += 0.1;
     }
-    getPixelsFromLat();
+}
+
+function populateLonLines(drone_lon) {
+    var current_lon = (Math.round(drone_lon * 10) / 10) - 0.5;
+
+    for (var i = 0; i <= 10; i++) {
+        current_lon = Math.round(current_lon * 10) / 10;
+        var pixels = getPixelsFromLat(current_lon, drone_lon);
+        var new_line = "<div style='left: " + pixels + "px' class='lon_line clearable'><span>" + current_lon + "</span></div>";
+
+        $("#drone").append(new_line);
+
+        current_lon += 0.1;
+    }
 }
 
 function addTower(heading) {
