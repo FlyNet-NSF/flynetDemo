@@ -38,6 +38,13 @@ body > * {
     position: absolute;
 }
 
+#drone > svg {
+    transform: translate(-50%, -50%);
+    width: 1000px;
+    height: 1000px;
+    z-index: 0;
+}
+
 #drone_icon > img {
     width: 32px;
     transform-origin: (50%, 50%);
@@ -77,6 +84,6 @@ body > * {
     border: 2px solid black;
 }
 
-div.ctower > img {
+div.ctower > img, div.gstation > img {
     width: 32px;
 }

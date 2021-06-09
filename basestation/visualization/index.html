@@ -3,14 +3,19 @@
         <link rel="stylesheet" type="text/css" href="style.css">
 
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+        <script src="https://raw.githubusercontent.com/caleb531/jcanvas/v21.0.1/dist/min/jcanvas.min.js"></script>
     </head>
 
     <body>
-        <div id="drone_icon" class="center">
+        <div data-id="drone" id="drone_icon" class="center">
             <img src="assets/drone.png">
         </div>
 
-        <div id="drone" class="center"></div>
+        <div id="drone" class="center">
+            <svg id="drawboard">
+                <line x1=50 x2=100 y1=0 y2=100 stroke='#5AB1BB' stroke-width='2'></line>
+            </svg>
+        </div>
 
         <div id="drone_info" class="center">
             <span>Lat: </span><span class='lat_input'></span><br>
