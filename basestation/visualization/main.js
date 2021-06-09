@@ -97,7 +97,7 @@ function addTower(tower_lat, tower_lon) {
 }
 
 setInterval(function() { 
-    $.getJSON('state.json', function(data) {
+    $.ajax({cache: false, success: function(data) {
         clearObjects();
     
         $.each(data, function (key, val) {
@@ -121,5 +121,5 @@ setInterval(function() {
                 });
             }
         });
-    });
-}, 5000);
+    }, url: 'state.json'});
+}, 2000);
