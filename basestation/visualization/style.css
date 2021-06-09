@@ -14,7 +14,6 @@ body > * {
 }
 
 .lat_line {
-    position: absolute;
     height: 0;
     width: 100vw;
     margin-left: -50vw;
@@ -23,7 +22,6 @@ body > * {
 }
 
 .lon_line {
-    position: absolute;
     width: 0;
     height: 100vh;
     margin-top: -50vh;
@@ -34,6 +32,10 @@ body > * {
 #drone {
     z-index: 100;
     overflow: visible;
+}
+
+#drone > * {
+    position: absolute;
 }
 
 #drone_icon > img {
@@ -73,4 +75,8 @@ body > * {
     height: 500px;
     z-index: 10;
     border: 2px solid black;
+}
+
+div.ctower > img {
+    width: 32px;
 }

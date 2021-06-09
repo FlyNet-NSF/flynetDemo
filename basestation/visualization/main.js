@@ -91,12 +91,14 @@ function addTower(tower_lat, tower_lon) {
     tower_width_pxl = getPixelsFromLat(tower_lat, drone_lat_last);
     tower_height_pxl = getPixelsFromLon(tower_lon, drone_lon_last);
 
+    var tower = "<div style='left: " + tower_width_pxl + "; top: " + tower_height_pxl + ";' class='ctower clearable'><img src='assets/tower.png'></div>"
 
+    addDroneObject(tower);
 }
 
 setInterval(function() { 
     $.getJSON('state.json', function(data) {
-        //clearObjects();
+        clearObjects();
     
         $.each(data, function (key, val) {
             if (key == "drone") {
@@ -111,6 +113,10 @@ setInterval(function() {
                         case "heading":
                             setDroneHeading(val)
                             break;
+                        case "celltowers":
+                            $.each(data["drone"][key], function(key, val) {
+                                addTower(val["latitude"], val["longitude"]);
+                            });
                     }
                 });
             }
