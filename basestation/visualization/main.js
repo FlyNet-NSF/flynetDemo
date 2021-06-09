@@ -96,12 +96,59 @@ function addTower(tower_lat, tower_lon) {
     addDroneObject(tower);
 }
 
+function addGroundStation(station_lat, station_lon) {
+    station_width_pxl = getPixelsFromLat(station_lat, drone_lat_last) * -1;
+    station_height_pxl = getPixelsFromLon(station_lon, drone_lon_last) * -1;
+
+    var tower = "<div style='left: " + station_width_pxl + "; top: " + station_height_pxl + ";' class='ctower clearable'><img src='assets/station.png'></div>"
+
+    addDroneObject(tower);
+}
+
+function addPath(source_lat, source_lon, dest_lat, dest_lon) {
+    source_width_pxl = getPixelsFromLat(source_lat);
+    source_height_pxl = getPixelsFromLon(source_lon);
+    dest_width_pxl = getPixelsFromLat(dest_lat);
+    dest_height_pxl = getPixelsFromLon(dest_lon);
+
+    var svg_width = Math.abs(dest_width_pxl - source_width_pxl);
+    var svg_height = Math.abs(dest_height_pxl - source_height_pxl);
+
+    var x1 = 0;
+    var x2 = 0;
+    var y1 = 0;
+    var y2 = 0;
+
+    if (source_width_pxl > dest_width_pxl) {
+        x1 = 0;
+        x2 = svg_width;
+    } else {
+        x1 = svg_width;
+        x2 = 0;
+    }
+
+    if (source_height_pxl > dest_height_pxl) {
+        y1 = svg_height;
+        y2 = 0;
+    } else {
+        y1 = 0;
+        y2 = svg_height;
+    }
+
+    var svg_script = "<svg width='" + svg_width + " height='" + svg_height + "''>";
+    svg_script += "<line x1='" + x1 + "' y1='" + y1 + "' x2='" + x2 + "' y2='" + y2 + "' style='stroke:rgb(255,0,0);stroke-width:2' />";
+    svg_script += "</svg>";
+
+    addDroneObject(svg_script);
+}
+
 setInterval(function() { 
     $.ajax({cache: false, success: function(data) {
         clearObjects();
     
         $.each(data, function (key, val) {
             if (key == "drone") {
+                // drone data (including cell towers)
                 $.each(data[key], function(key, val) {
                     switch(key) {
                         case "latitude":
@@ -118,6 +165,16 @@ setInterval(function() {
                                 addTower(val["latitude"], val["longitude"]);
                             });
                     }
+                });
+            } else if (key == "stations") {
+                // ground stations
+                $.each(data[key], function(key, val) {
+                    addGroundStation(val["latitude"], val["longitude"]);
+                });
+            } else if (key == "weights") {
+                // generated graph data
+                $.each(data[key], function(key, val) {
+                    
                 });
             }
         });

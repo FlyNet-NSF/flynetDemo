@@ -71,6 +71,7 @@ def main(args):
       jsonDict = {
         "drone": droneData,
         "stations": ground_stations,
+        "weights": graph,
         "basestation": basestationData
       }
 
