@@ -1,0 +1,82 @@
+html,body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body > * {
+    position: fixed;
+}
+
+.center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.lat_line {
+    height: 0;
+    width: 100vw;
+    margin-left: -50vw;
+    border-top: 1px dashed #cccccc;
+    z-index: 0;
+}
+
+.lon_line {
+    width: 0;
+    height: 100vh;
+    margin-top: -50vh;
+    border-right: 1px dashed #cccccc;
+    z-index: 0;
+}
+
+#drone {
+    z-index: 100;
+    overflow: visible;
+}
+
+#drone > * {
+    position: absolute;
+}
+
+#drone_icon > img {
+    width: 32px;
+    transform-origin: (50%, 50%);
+}
+
+#drone_vrule {
+    height: 100%;
+    width: 1px;
+    background: black;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+}
+
+#drone_hrule {
+    width: 100%;
+    height: 1px;
+    background: black;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+}
+
+#drone_info {
+    font-size: 10pt;
+    margin-left: 180px;
+    margin-top: 50px;
+    width: 300px;
+    z-index: 100;
+}
+
+#range_circle {
+    border-radius: 50%;
+    width: 500px;
+    height: 500px;
+    z-index: 10;
+    border: 2px solid black;
+}
+
+div.ctower > img {
+    width: 32px;
+}

@@ -45,7 +45,6 @@ def main(args):
 
     nonlocal ground_stations
     ground_stations = generateGroundStations(droneLL, ground_stations)
-    # In the medium-term ground stations should be sent to the drone, who can test RTT directly off of cell towers, and return results
 
     towers = droneData['celltowers']
     graph = calculateWeights(towers, ground_stations)
@@ -54,7 +53,7 @@ def main(args):
     max_val = float('inf')
     max_element = None
     for node in rtt:
-      if node.startswith("gs-"):
+      if node.startswith("gs_"):
         max_val = rtt[node]
         max_element = node
     
@@ -65,35 +64,20 @@ def main(args):
     basestationData['network'] = path_to_use
     submitToDrone(args, dronechannel, basestationData)
 
-    """
-    droneNetworks = droneData['networkConnections']
-    maxCellUtility = 0
-    bestNetwork = None
-    bestTowerDistance = 0
-    for droneNetwork in droneNetworks:
-      #really we want to combine cell network info with processing station load info gathered from mobius
-      #for short term testing we'll just make a decision based on the cell data
-      thisNetworkName = droneNetwork['network']
-      towerResult = getTowerInfo(thisNetworkName)
-      if towerResult is not None:
-        towerDistanceCalc = Geodesic.WGS84.Inverse(droneLL[1], droneLL[0], towerResult['latitude'], towerResult['longitude'])
-        towerDistance = towerDistanceCalc['s12'] #https://geographiclib.sourceforge.io/html/python/code.html#geographiclib.geodesic.Geodesic.Inverse
-        averageUtilization = towerResult['averageUtilization']
-        thisCellUtility = getCellUtility(towerDistance, averageUtilization)
-        if thisCellUtility > maxCellUtility:
-          maxCellUtility = thisCellUtility
-          bestNetwork = thisNetworkName
-          bestTowerDistance = towerDistance
-    basestationData = {}
-    if bestNetwork is not None:
-      basestationData['network'] = bestNetwork
-      #send some arbitrary tuning params
-      basestationData['latency'] = bestTowerDistance/10000
-      basestationData['rate'] = random.randint(7, 10) #rate some random number in mbps assuming 10mbps was the max
-      submitToDrone(args, dronechannel, basestationData)
-    else:
-      print("no networks to use... don't process this data")
-    """
+    if args.state is not None:
+      # save to state
+      stateFile = args.state
+
+      jsonDict = {
+        "drone": droneData,
+        "stations": ground_stations,
+        "basestation": basestationData
+      }
+
+      json_dump = json.dumps(jsonDict)
+
+      with open(stateFile, "w") as file: # Use file to refer to the file object
+        data = file.write(json_dump)
 
   basechannel.basic_consume(queue=args.basestation_queue,
                         auto_ack=True,
@@ -187,7 +171,7 @@ def generateGroundStations(location, existing = []):
     for i in range(count - len(existing)):
       longitude = min_long + random.random() * 2 * location_delta
       latitude = min_lat + random.random() * 2 * location_delta
-      out.append({'id': "gs" + str(longitude) + "-" + str(latitude), 'longitude': longitude, 'latitude': latitude})  # add in a new random ground station
+      out.append({'id': "gs_" + str(longitude) + "_" + str(latitude), 'longitude': longitude, 'latitude': latitude})  # add in a new random ground station
 
   return out
 
@@ -233,6 +217,7 @@ def handleArguments(properties):
                           type=str, help="The drone RabbitMQ exchange name.  Default is in the config file.")
   parser.add_argument("-n", "--noisy", dest="noisy", action='store_true',
                       help="Enable noisy output.")
+  parser.add_argument("-s", "--state", dest="state", default=properties['state_file'], help="File path to state json")
   return parser.parse_args()
 
 def daemonize():
