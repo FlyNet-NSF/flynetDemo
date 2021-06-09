@@ -33,6 +33,8 @@ def main(args):
 
   currentLat = 32.0
   currentLon = -96.0
+  currentAlt = 500  # ft
+
   currentBattery = random.randint(50, 100)
   endless = 0
 
@@ -40,20 +42,25 @@ def main(args):
 
   while currentBattery > 10:
     droneData = {}
-    """
-    networkConnections = []
-    network_a = {'network': 'att', 'distanceM': random.randint(500, 4000) }
-    network_b = {'network': 'verizon', 'distanceM': random.randint(500, 4000) }
-    networkConnections.append(network_a)
-    networkConnections.append(network_b)
-    droneData['networkConnections'] = networkConnections
-    """
     
+    # update drone data
     droneData['latitude'] = currentLat
     droneData['longitude'] = currentLon
     droneData['batterylife'] = currentBattery
 
-    cell_towers = generateCellTowers({'latitude': currentLat, 'longitude': currentLon}, cell_towers)  # regenerate cell towers
+    # move drone
+    prevLat = currentLat
+    prevLon = currentLon
+
+    currentLat = currentLat + .01
+    currentLon = currentLon - .01
+
+    # calculate heading
+    drone_change = Geodesic.WGS84.Inverse(currentLat, currentLon, prevLat, prevLon)
+    drone_heading = drone_change['azi1']
+    drone_point = Point(prevLat, prevLon, currentAlt)
+
+    cell_towers = generateCellTowers(dron_point, drone_heading, cell_towers)  # regenerate cell towers
 
     for tower in cell_towers:
       towerDistanceCalc = Geodesic.WGS84.Inverse(currentLat, currentLon, tower['latitude'], tower['longitude'])
@@ -63,10 +70,7 @@ def main(args):
 
     droneData['celltowers'] = cell_towers
 
-    # flight simulation
-    currentLat = currentLat + .01
-    currentLon = currentLon - .01
-
+    # battery simulation
     currentBattery = currentBattery - 1
 
     #print(droneData)
@@ -79,28 +83,34 @@ def main(args):
   print("Flight is complete.  Exiting")
   sys.exit()
   
-def generateCellTowers(location, existing = []):
+def generateCellTowers(location, track, existing = []):
   count = 4
-  location_delta = 0.01
-  loc_lat = location['latitude']
-  loc_long = location['longitude']
-  min_long = loc_long - location_delta
-  max_long = loc_long + location_delta
-  min_lat = loc_lat - location_delta
-  max_lat = loc_lat + location_delta
+  distance_limit = 5000  # meters from drone to cell tower
+  loc_lat = location.latitude
+  loc_long = location.longitude
 
   # remove out of range cell towers
   for tower in existing:
-    if tower['longitude'] < min_long or tower['longitude'] > max_long or tower['latitude'] < min_lat or tower['latitude'] > max_lat:
+    tower_lon = tower['longitude']
+    tower_lat = tower['latitude']
+
+    drone_tower_distance = Geodesic.WGS84.Inverse(location.latitude, location.longitude, tower_lat, tower_lon)['s12']  # calculate distance
+
+    if drone_tower_distance < distance_limit:
       existing.remove(tower)
 
   out = existing
   # add stations if needed
   if len(existing) < count:
     for i in range(count - len(existing)):
-      longitude = min_long + random.random() * 2 * location_delta
-      latitude = min_lat + random.random() * 2 * location_delta
-      out.append({'id': "ct" + str(longitude) + "-" + str(latitude), 'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)})  # add in a new random ground station
+      rand_distance = distance_limit - random.random() * (distance_limit / 100)  # generate a distance on the edge of the range of the drone
+      rel_bearing = random.random() * 120 - 60  # calculate a random relative heading between -60 and 60 degrees from the drone
+
+      new_tower = distance.distance(meters=rand_distance).destination(location, rel_bearing)  # find coordinates of new tower
+
+      longitude = new_tower.longitude
+      latitude = new_tower.latitude
+      out.append({'id': "ct-" + str(longitude) + "-" + str(latitude), 'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)})  # add in a new random ground station
 
   return out
 
