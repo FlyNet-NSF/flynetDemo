@@ -1,5 +1,5 @@
 var latlonFactor = 3000;  // 100px per 0.1 lat or 0.1 lon, also determines initial zoom
-var $canvas = $('#drawboard');
+var svg_size = 1000;  // predefined SVG width
 
 function getPixelsFromLat(lat, drone_lat) {
     var lat_delta = drone_lat - lat;
@@ -69,6 +69,10 @@ function addDroneObject(object) {
     $("#drone").append(object)
 }
 
+function addSVGObject(object) {
+    $("#drone > svg").append(object);
+}
+
 function populateLatLines(drone_lat) {
     var current_lat = (Math.round(drone_lat * 10) / 10) - 0.5;
 
@@ -127,12 +131,12 @@ function addPathByID(source_id, dest_id) {
         dest_elem = $("#drone_icon");
     }
 
-    var drone = $("#drone")
-    var drone_pos = drone.position();
+    var source_lat = source_elem.attr("data-lat");
+    var source_lon = source_elem.attr("data-lon");
+    var dest_lat = dest_elem.attr("data-lat");
+    var dest_lon = dest_elem.attr("data-lon");
 
-    var source_pos = source_elem.position();
-
-    var dest_pos = dest_elem.position();
+    addPath(source_lat, source_lon, dest_lat, dest_lon);
 }
 
 function addPath(source_lat, source_lon, dest_lat, dest_lon) {
@@ -141,35 +145,14 @@ function addPath(source_lat, source_lon, dest_lat, dest_lon) {
     dest_width_pxl = getPixelsFromLat(dest_lat, drone_lat_last);
     dest_height_pxl = getPixelsFromLon(dest_lon, drone_lon_last);
 
-    var svg_width = Math.abs(dest_width_pxl - source_width_pxl);
-    var svg_height = Math.abs(dest_height_pxl - source_height_pxl);
+    let x1 = Math.round(source_width_pxl + (svg_size / 2));
+    let y1 = Math.round(source_height_pxl + (svg_size / 2));
+    let x2 = Math.round(dest_width_pxl + (svg_size / 2));
+    let y2 = Math.round(dest_height_pxl + (svg_size / 2));
 
-    var x1 = 0;
-    var x2 = 0;
-    var y1 = 0;
-    var y2 = 0;
-
-    if (source_width_pxl > dest_width_pxl) {
-        x1 = 0;
-        x2 = svg_width;
-    } else {
-        x1 = svg_width;
-        x2 = 0;
-    }
-
-    if (source_height_pxl > dest_height_pxl) {
-        y1 = svg_height;
-        y2 = 0;
-    } else {
-        y1 = 0;
-        y2 = svg_height;
-    }
-
-    var svg_script = "<svg width='" + svg_width + "' height='" + svg_height + "'>";
-    svg_script += "<line x1='" + x1 + "' y1='" + y1 + "' x2='" + x2 + "' y2='" + y2 + "' style='stroke:rgb(255,0,0);stroke-width:2' />";
-    svg_script += "</svg>";
-
-    addDroneObject(svg_script);
+    var svg_script = "<line class='clearable' x1='" + x1 + "' x2='" + x2 + "' y1='" + y1 + "' y2='" + y2 + "' stroke='#5AB1BB' stroke-width='2'></line>";
+    // NEED TO FIX NAMESPACE HERE
+    addSVGObject(svg_script);
 }
 
 setInterval(function() { 
@@ -206,11 +189,12 @@ setInterval(function() {
                 $.each(data[key], function(key, val) {
                     source_key = key;
                     $.each(data["weights"][key], function(key, val) {
-                        console.log(val[0]);
                         addPathByID(source_key, val[0]);
                     });
                 });
             }
+
+            $("body").html($("body").html());  // refresh SVG
         });
     }, url: 'state.json'});
-}, 2000);
+}, 5000);
