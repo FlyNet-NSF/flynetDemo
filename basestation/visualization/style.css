@@ -15,10 +15,10 @@ body > * {
 
 .lat_line {
     position: absolute;
-    height: 0px;
+    height: 0;
     width: 100vw;
-    border: 1px dashed #eeeeee;
     margin-left: -50vw;
+    border-top: 1px dashed #cccccc;
     z-index: 0;
 }
 
@@ -26,8 +26,8 @@ body > * {
     position: absolute;
     width: 0;
     height: 100vh;
-    border: 1px dashed #eeeeee;
     margin-top: -50vh;
+    border-right: 1px dashed #cccccc;
     z-index: 0;
 }
 
@@ -36,9 +36,9 @@ body > * {
     overflow: visible;
 }
 
-#drone > img {
-    transform-origin: 50% 50%;
+#drone_icon > img {
     width: 32px;
+    transform-origin: (50%, 50%);
 }
 
 #drone_vrule {
