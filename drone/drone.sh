@@ -1,5 +1,5 @@
 yum update
-yum install -y yum-utils device-mapper-persistent-data lvm2 gcc zlib-devel openssl-devel squashfs-tools mesa-libGL-devel make
+yum install -y yum-utils device-mapper-persistent-data lvm2 gcc zlib-devel openssl-devel squashfs-tools mesa-libGL-devel make iproute-tc kernel-modules-extra kernel-debug-modules-extra
 yum remove -y python3
 adduser -d /home/drone -m drone
 echo 'drone ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
@@ -32,5 +32,6 @@ make altinstall
 /bin/su - drone -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/drone/video_data.tar; /bin/tar -xf video_data.tar"
 /bin/su - drone -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/drone/listenToBasestation.tar; /bin/tar -xf listenToBasestation.tar"
 /bin/su - drone -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/drone/sendToBasestation.tar; /bin/tar -xf sendToBasestation.tar"
+reboot
 
 
