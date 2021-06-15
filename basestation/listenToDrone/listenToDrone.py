@@ -115,11 +115,15 @@ def main(args):
   basechannel.start_consuming()
 
 def normalize(parameters):
-  parameters[0] = parameters[0] / 1000  # RTT
-  parameters[1] = parameters[1] / 1000  # BW
-  parameters[2] = parameters[2] / 100  # Load
+  rtt = parameters[0]
+  bw = parameters[1]
+  load = parameters[2]
 
-  return parameters
+  rtt = rtt / 1000  # RTT
+  bw = bw / 1000  # BW
+  load = load / 100  # Load
+
+  return [rtt, bw, load]
 
 def calculateWeights(towers, stations):
   # weights for calculating overall weight
