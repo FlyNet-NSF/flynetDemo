@@ -17,6 +17,8 @@ cd /root
 cd /root/Python-3.7.9
 ./configure 
 make altinstall
+python3.7 -m pip install --upgrade pip
+/usr/local/bin/pip3.7 install python-hosts
 /usr/local/bin/pip3.7 install pika
 /usr/local/bin/pip3.7 install requests
 /usr/local/bin/pip3.7 install geojson
