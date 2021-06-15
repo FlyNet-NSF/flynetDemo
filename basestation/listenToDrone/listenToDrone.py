@@ -9,6 +9,8 @@ import pika
 import threading
 import configparser
 import random 
+import time
+import socket
 from datetime import datetime
 from argparse import ArgumentParser
 from os import path
@@ -62,6 +64,70 @@ def main(args):
     station_to_use = max_element
     path_to_use = getPath(prevs, station_to_use)
 
+    prometheusQueryURL = 'http://dynamo-broker1.exogeni.net:9090/api/v1/query?query='
+    workerinfo = getWorkerInfo()
+    for workerinf in workerinfo:
+      print("worker: " + workerinf['name'] + " address: " + workerinf['ipaddress'])
+      #worker_rtt = getWorkerRTT_socket(workerinf['ipaddress'], 9100, 4)
+      #print("worker: " + workerinf['name'] + " address: " + workerinf['ipaddress']
+      statusQueryURL = prometheusQueryURL + 'up{instance="' + workerinf['ipaddress'] + ':9100"}'
+      response = requests.get(statusQueryURL)
+      if response.status_code == 200:
+        nodestatusJSON = json.loads(response.content)
+        if (nodestatusJSON["status"] == "success") :
+          querydata = nodestatusJSON["data"]
+          result = querydata["result"]
+          if (result):
+            value = result[0]["value"]
+            status = value[1]
+            if (status == "1"):
+              print ("node is online")
+              loadQueryURL = prometheusQueryURL + 'node_load1{instance="' + workerinf['ipaddress'] + ':9100"}'
+              response = requests.get(loadQueryURL)
+              if response.status_code == 200:
+                nodeloadJSON = json.loads(response.content)
+                if (nodeloadJSON["status"] == "success") :
+                  querydata = nodeloadJSON["data"]
+                  result = querydata["result"]
+                  if (result):
+                    value = result[0]["value"]
+                    load = value[1]
+                    print ("load: " + load)
+                  else:
+                    print ("no load given")
+                else:
+                  print ("load query failed")
+              else:
+                print("response status: " + str(response.status_code))
+
+              networkQueryURL = prometheusQueryURL + 'rate(node_network_receive_bytes_total{instance="' + workerinf['ipaddress'] + ':9100"}[30s])'
+              response = requests.get(networkQueryURL)
+              if response.status_code == 200:
+                nodenetworkJSON = json.loads(response.content)
+                if (nodenetworkJSON["status"] == "success") :
+                  querydata = nodenetworkJSON["data"]
+                  result = querydata["result"]
+                  if (result):
+                    #unclear what device to monitor right now
+                    value = result[2]["value"]
+                    load = value[1]
+                    print ("bytes received in the last 30s: " + load)
+                  else:
+                    print ("no network info given")
+                else:
+                  print ("network query failed")
+              else:
+                print("response status: " + str(response.status_code))
+            else:
+              print ("node is offline")
+          else:
+            print ("node is offline")
+        else:
+          print ("status query failed")
+      else:
+        print("response status: " + str(response.status_code))
+    
+    
     basestationData = {}
     basestationData['network'] = path_to_use
     submitToDrone(args, dronechannel, basestationData)
@@ -192,7 +258,7 @@ def generateGroundStations(location, existing = []):
 
   return out
 
-def getGroundStationIPAddresses():
+def getWorkerInfo():
   #available ground station IP addresses can be found in /etc/hosts, and possibly modulated by an independent process
   current_hosts = Hosts()
   groundstations = []
@@ -203,6 +269,17 @@ def getGroundStationIPAddresses():
           workerdict = { "name": name, "ipaddress": entry.address }
           groundstations.append(workerdict)
   return groundstations
+
+def getWorkerRTT_tcpSocket(host, portno, timeout):
+  sock_params = (host, portno)
+  with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    sock.settimeout(timeout)
+    sock.connect(sock_params)
+    inittime = time.time()
+    sock.sendall(b'1')
+    respdata = sock.recv(1)
+    recvtime = time.time()
+    return recvtime - inittime
 
 def getTowerInfo(thisNetworkName):
   #not used at present, but if we wanted to do the simulated network overlay here on the basestation side instead of the web app, this could be useful
