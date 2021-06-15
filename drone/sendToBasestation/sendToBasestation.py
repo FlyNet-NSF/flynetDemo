@@ -19,6 +19,7 @@ from distutils.util import strtobool
 
 # constants
 networks = ("verizon", "att", "sprint", "comcast")
+worker_interface = "eth2"
 
 def readConfig(file):
   config = configparser.ConfigParser()
@@ -38,7 +39,7 @@ def main(args):
   currentBattery = random.randint(50, 100)
   endless = 0
 
-  cell_towers = []
+  cell_towers = {}
 
   while currentBattery > 10:
     droneData = {}
@@ -65,11 +66,14 @@ def main(args):
 
     cell_towers = generateCellTowers(drone_point, drone_heading, cell_towers)  # regenerate cell towers
 
-    for tower in cell_towers:
+    for id,tower in cell_towers.items():
       towerDistanceCalc = Geodesic.WGS84.Inverse(currentLat, currentLon, tower['latitude'], tower['longitude'])
       towerDistance = towerDistanceCalc['s12']
-      rtt = towerDistance + random.randint(-20, 20)  # calculate RTT with some randomness
+      rtt = towerDistance / 1000  # calculate RTT with some randomness (factor of distance)
       tower['rtt'] = rtt
+
+      bw = round(random.random() * 35)  # in mb/s
+      tower['bw'] = bw
 
     droneData['celltowers'] = cell_towers
 
@@ -86,7 +90,7 @@ def main(args):
   print("Flight is complete.  Exiting")
   sys.exit()
   
-def generateCellTowers(location, track, existing = []):
+def generateCellTowers(location, track, existing = {}):
   mincount = 4
   distance_limit = 10000  # meters from drone to cell tower
   loc_lat = location.latitude
@@ -112,7 +116,8 @@ def generateCellTowers(location, track, existing = []):
 
       longitude = new_tower.longitude
       latitude = new_tower.latitude
-      out.append({'id': "ct_" + str(longitude) + "_" + str(latitude), 'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)})  # add in a new random ground station
+      key = "ct_" + str(longitude) + "_" + str(latitude)
+      out[key] = {'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)}  # add in a new random ground station
   else:
     # remove out of range cell towers
     for tower in existing:
@@ -134,8 +139,9 @@ def generateCellTowers(location, track, existing = []):
 
       longitude = new_tower.longitude
       latitude = new_tower.latitude
-      out.append({'id': "ct_" + str(longitude) + "_" + str(latitude), 'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)})  # add in a new random ground station
+      out["ct_" + str(longitude) + "_" + str(latitude)] = {'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)}  # add in a new random ground station
 
+  print(out)
   return out
 
 def handleArguments(properties):
