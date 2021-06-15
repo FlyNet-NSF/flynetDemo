@@ -35,7 +35,7 @@ def main(args):
   dronechannel = droneconnection.channel()
   dronechannel.queue_declare(queue=args.drone_queue, durable=True)
 
-  ground_stations = []
+  ground_stations = {}
 
   def callback(ch, method, properties, body):
     droneData = json.loads(body)
@@ -58,7 +58,17 @@ def main(args):
         max_element = node
     
     station_to_use = max_element
-    path_to_use = getPath(prevs, station_to_use)
+    links = getPath(prevs, station_to_use)
+
+    for link in links:
+      # loop through each link in the network (shortest path)
+      source = link[0]
+      dest = link[1]
+
+      source_neighbors = graph[source]
+      
+
+      
 
     basestationData = {}
     basestationData['network'] = path_to_use
@@ -87,21 +97,43 @@ def main(args):
   print(' [*] Waiting for messages. ')
   basechannel.start_consuming()
 
+def normalize(parameters):
+  parameters[0] = parameters[0] / 1000  # RTT
+  parameters[1] = parameters[1] / 1000  # BW
+  parameters[2] = parameters[2] / 100  # Load
+
+  return parameters
+
 def calculateWeights(towers, stations):
+  # weights for calculating overall weight
+  weights = [20, 30, 50]  # weights (rtt, bw, load)
+
   graph = defaultdict(list)
-  for tower in towers:
-    for station in stations:
+  for t_id,tower in towers.items():
+    for s_id,station in stations.items():
       # SIMULATION (weight calculation)
       tower_to_gs = Geodesic.WGS84.Inverse(tower['latitude'], tower['longitude'], station['latitude'], station['longitude'])
       tower_to_gs_distance = tower_to_gs['s12']
-      rtt = tower_to_gs_distance + random.randint(-20, 20)  # calculate RTT with some randomness
+      rtt = tower_to_gs_distance / 1000  # calculate RTT with some randomness
+      bw = random.random() * 1000  # up to 1000mb link bandwidth
+      load = 20  # GS load (fixed value for now)
+
+      parameters = [rtt, bw, load]
+      param_norm = normalize(parameters)
+      weighted_params = [a * b for a, b in zip(weights, param_norm)]
+      total_weight = sum(weighted_params)
       # END SIMULATION
 
-      graph[tower['id']].append((station['id'], rtt / 2))  # add path to graph
-      graph[station['id']].append((tower['id'], rtt / 2))
+      graph[t_id].append([s_id, total_weight, parameters])  # add path to graph
+      graph[s_id].append([t_id, total_weight, parameters])
     
-    graph['drone'].append((tower['id'], tower['rtt'] / 2))  # add drone node
-    graph[tower['id']].append(("drone", tower['rtt'] / 2))  # add drone node
+    parameters = [tower['rtt'], tower['bw'], 0]
+    param_norm = normalize(parameters)
+    weighted_params = [a * b for a, b in zip(weights, param_norm)]
+    total_weight = sum(weighted_params)
+
+    graph['drone'].append([t_id, total_weight, parameters])  # add drone node
+    graph[t_id].append(["drone", total_weight, parameters])  # add drone node
 
   return graph
 
@@ -142,16 +174,15 @@ def shortestPath(graph, startNode):
 def getPath(prev, destinationNode):
   out = []
   currentNode = destinationNode
-  out.append(currentNode)
 
   while prev[currentNode] != "":
-    out.append(prev[currentNode])
+    out.insert(0, [prev[currentNode], currentNode])
     currentNode = prev[currentNode]
 
   return out
 
-def generateGroundStations(location, existing = []):
-  count = 10
+def generateGroundStations(location, existing = {}):
+  count = 2
   location_delta = 0.1
   loc_lat = location[1]
   loc_long = location[0]
@@ -162,9 +193,13 @@ def generateGroundStations(location, existing = []):
   max_lat = loc_lat + location_delta
 
   # remove out of range stations
-  for station in existing:
+  delList = []
+  for id,station in existing.items():
     if station['longitude'] < min_long or station['longitude'] > max_long or station['latitude'] < min_lat or station['latitude'] > max_lat:
-      existing.remove(station)
+      delList.append(id)
+
+  for id in delList:
+    del existing[id]
 
   out = existing
   # add stations if needed
@@ -172,7 +207,8 @@ def generateGroundStations(location, existing = []):
     for i in range(count - len(existing)):
       longitude = min_long + random.random() * 2 * location_delta
       latitude = min_lat + random.random() * 2 * location_delta
-      out.append({'id': "gs_" + str(longitude) + "_" + str(latitude), 'longitude': longitude, 'latitude': latitude})  # add in a new random ground station
+      key = "gs_" + str(longitude) + "_" + str(latitude)
+      out[key] = {'longitude': longitude, 'latitude': latitude}  # add in a new random ground station
 
   return out
 
