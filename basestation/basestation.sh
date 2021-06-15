@@ -1,5 +1,5 @@
 yum update
-yum install -y yum-utils device-mapper-persistent-data lvm2 gcc zlib-devel openssl-devel
+yum install -y yum-utils device-mapper-persistent-data lvm2 gcc zlib-devel openssl-devel make gcc
 yum remove -y python3
 yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 yum install -y docker-ce docker-ce-cli containerd.io
@@ -17,6 +17,8 @@ cd /root
 cd /root/Python-3.7.9
 ./configure 
 make altinstall
+python3.7 -m pip install --upgrade pip
+/usr/local/bin/pip3.7 install python-hosts
 /usr/local/bin/pip3.7 install pika
 /usr/local/bin/pip3.7 install requests
 /usr/local/bin/pip3.7 install geojson
