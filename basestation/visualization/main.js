@@ -1,5 +1,6 @@
 var latlonFactor = 3000;  // 100px per 0.1 lat or 0.1 lon, also determines initial zoom
 var svg_size = 1000;  // predefined SVG width
+var obj_size = 32;  // pixels
 
 function getPixelsFromLat(lat, drone_lat) {
     var lat_delta = drone_lat - lat;
@@ -102,8 +103,8 @@ function populateLonLines(drone_lon) {
 }
 
 function addTower(tower_lat, tower_lon, id) {
-    tower_width_pxl = getPixelsFromLat(tower_lat, drone_lat_last);
-    tower_height_pxl = getPixelsFromLon(tower_lon, drone_lon_last);
+    tower_width_pxl = getPixelsFromLat(tower_lat, drone_lat_last) - obj_size / 2;
+    tower_height_pxl = getPixelsFromLon(tower_lon, drone_lon_last) - obj_size / 2;
 
     var tower = "<div data-id='" + id + "' data-lat='" + tower_lat + "' data-lon='" + tower_lon + "' style='left: " + tower_width_pxl + "; top: " + tower_height_pxl + ";' class='ctower clearable'><img src='assets/tower.png'></div>"
 
@@ -111,8 +112,8 @@ function addTower(tower_lat, tower_lon, id) {
 }
 
 function addGroundStation(station_lat, station_lon, id) {
-    station_width_pxl = getPixelsFromLat(station_lat, drone_lat_last);
-    station_height_pxl = getPixelsFromLon(station_lon, drone_lon_last);
+    station_width_pxl = getPixelsFromLat(station_lat, drone_lat_last) - obj_size / 2;
+    station_height_pxl = getPixelsFromLon(station_lon, drone_lon_last) - obj_size / 2;
 
     var station = "<div data-id='" + id + "' data-lat='" + station_lat + "' data-lon='" + station_lon + "' style='left: " + station_width_pxl + "; top: " + station_height_pxl + ";' class='gstation clearable'><img src='assets/station.png'></div>"
 
@@ -150,12 +151,16 @@ function addPath(source_lat, source_lon, dest_lat, dest_lon) {
     let x2 = Math.round(dest_width_pxl + (svg_size / 2));
     let y2 = Math.round(dest_height_pxl + (svg_size / 2));
 
-    var svg_script = "<line class='clearable' x1='" + x1 + "' x2='" + x2 + "' y1='" + y1 + "' y2='" + y2 + "' stroke='#5AB1BB' stroke-width='2'></line>";
-    // NEED TO FIX NAMESPACE HERE
-    addSVGObject(svg_script);
+    var c = document.getElementById('drawboard');
+    var ctx = c.getContext('2d');
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
 }
 
-setInterval(function() { 
+function updateJSON() {
     $.ajax({cache: false, success: function(data) {
         clearObjects();
     
@@ -193,8 +198,14 @@ setInterval(function() {
                     });
                 });
             }
-
-            $("body").html($("body").html());  // refresh SVG
         });
     }, url: 'state.json'});
+}
+
+updateJSON();
+
+/*
+setInterval(function() { 
+    updateJSON();
 }, 5000);
+*/

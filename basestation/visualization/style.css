@@ -38,11 +38,10 @@ body > * {
     position: absolute;
 }
 
-#drone > svg {
+#drawboard {
     transform: translate(-50%, -50%);
-    width: 1000px;
-    height: 1000px;
     z-index: 0;
+    border: 2px solid black;
 }
 
 #drone_icon > img {
