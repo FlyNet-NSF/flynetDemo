@@ -2,6 +2,9 @@ var latlonFactor = 3000;  // 100px per 0.1 lat or 0.1 lon, also determines initi
 var svg_size = 1000;  // predefined SVG width
 var obj_size = 32;  // pixels
 
+var c = document.getElementById('drawboard');
+var ctx = c.getContext('2d');
+
 function getPixelsFromLat(lat, drone_lat) {
     var lat_delta = drone_lat - lat;
     var lat_pixels = lat_delta * latlonFactor;
@@ -28,6 +31,8 @@ function getDroneLon() {
 
 function clearObjects() {
     $(".clearable").remove();
+
+    ctx.clearRect(0, 0, c.width, c.height);
 }
 
 function setDroneHeading(heading) {
@@ -120,7 +125,7 @@ function addGroundStation(station_lat, station_lon, id) {
     addDroneObject(station);
 }
 
-function addPathByID(source_id, dest_id) {
+function addPathByID(source_id, dest_id, active = false) {
     var source_elem = $("div").find(`[data-id='${source_id}']`);
     var dest_elem = $("div").find(`[data-id='${dest_id}']`);
 
@@ -137,10 +142,10 @@ function addPathByID(source_id, dest_id) {
     var dest_lat = dest_elem.attr("data-lat");
     var dest_lon = dest_elem.attr("data-lon");
 
-    addPath(source_lat, source_lon, dest_lat, dest_lon);
+    addPath(source_lat, source_lon, dest_lat, dest_lon, active);
 }
 
-function addPath(source_lat, source_lon, dest_lat, dest_lon) {
+function addPath(source_lat, source_lon, dest_lat, dest_lon, active = false) {
     source_width_pxl = getPixelsFromLon(source_lat, drone_lat_last);
     source_height_pxl = getPixelsFromLat(source_lon, drone_lon_last);
     dest_width_pxl = getPixelsFromLon(dest_lat, drone_lat_last);
@@ -151,12 +156,16 @@ function addPath(source_lat, source_lon, dest_lat, dest_lon) {
     let x2 = Math.round(dest_width_pxl + (svg_size / 2));
     let y2 = Math.round(dest_height_pxl + (svg_size / 2));
 
-    var c = document.getElementById('drawboard');
-    var ctx = c.getContext('2d');
-
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
+    if (active) {
+        ctx.strokeStyle = '#990000';
+        ctx.lineWidth = 3;
+    } else {
+        ctx.strokeStyle = '#999999';
+        ctx.lineWidth = 1;
+    }
     ctx.stroke();
 }
 
@@ -197,15 +206,27 @@ function updateJSON() {
                         addPathByID(source_key, val[0]);
                     });
                 });
+            } else if (key == "basestation") {
+                // basestation data
+                $.each(data[key], function(key, val) {
+                    if (key == "network") {
+                        var lastItem = null;
+                        $.each(data["basestation"][key], function(key, val) {
+                            if (lastItem === null) {
+                                lastItem = val;
+                            } else {
+                                addPathByID(lastItem, val, true);
+                                lastItem = val;
+                            }
+                        });
+                    }
+                });
             }
         });
     }, url: 'state.json'});
 }
 
 updateJSON();
-
-/*
 setInterval(function() { 
     updateJSON();
 }, 5000);
-*/
