@@ -10,8 +10,8 @@ function getPixelsFromLat(lat, drone_lat) {
 }
 
 function getPixelsFromLon(lon, drone_lon) {
-    var lon_delta = drone_lon - lon;
-    var lon_pixels = lon_delta * latlonFactor * -1;
+    var lon_delta = (drone_lon - lon) * -1;
+    var lon_pixels = lon_delta * latlonFactor;
 
     return lon_pixels;
 }
@@ -103,17 +103,17 @@ function populateLonLines(drone_lon) {
 }
 
 function addTower(tower_lat, tower_lon, id) {
-    tower_width_pxl = getPixelsFromLat(tower_lat, drone_lat_last) - obj_size / 2;
-    tower_height_pxl = getPixelsFromLon(tower_lon, drone_lon_last) - obj_size / 2;
+    tower_width_pxl = getPixelsFromLon(tower_lat, drone_lat_last) - obj_size / 2;
+    tower_height_pxl = getPixelsFromLat(tower_lon, drone_lon_last) - obj_size / 2;
 
-    var tower = "<div data-id='" + id + "' data-lat='" + tower_lat + "' data-lon='" + tower_lon + "' style='left: " + tower_width_pxl + "; top: " + tower_height_pxl + ";' class='ctower clearable'><img src='assets/tower.png'></div>"
+    var tower = "<div data-id='" + id + "' data-lat='" + tower_lat + "' data-lon='" + tower_lon + "' style='left: " + tower_width_pxl + "px; top: " + tower_height_pxl + "px;' class='ctower clearable'><img src='assets/tower.png'></div>"
 
     addDroneObject(tower);
 }
 
 function addGroundStation(station_lat, station_lon, id) {
-    station_width_pxl = getPixelsFromLat(station_lat, drone_lat_last) - obj_size / 2;
-    station_height_pxl = getPixelsFromLon(station_lon, drone_lon_last) - obj_size / 2;
+    station_width_pxl = getPixelsFromLon(station_lat, drone_lat_last) - obj_size / 2;
+    station_height_pxl = getPixelsFromLat(station_lon, drone_lon_last) - obj_size / 2;
 
     var station = "<div data-id='" + id + "' data-lat='" + station_lat + "' data-lon='" + station_lon + "' style='left: " + station_width_pxl + "; top: " + station_height_pxl + ";' class='gstation clearable'><img src='assets/station.png'></div>"
 
@@ -141,10 +141,10 @@ function addPathByID(source_id, dest_id) {
 }
 
 function addPath(source_lat, source_lon, dest_lat, dest_lon) {
-    source_width_pxl = getPixelsFromLat(source_lat, drone_lat_last);
-    source_height_pxl = getPixelsFromLon(source_lon, drone_lon_last);
-    dest_width_pxl = getPixelsFromLat(dest_lat, drone_lat_last);
-    dest_height_pxl = getPixelsFromLon(dest_lon, drone_lon_last);
+    source_width_pxl = getPixelsFromLon(source_lat, drone_lat_last);
+    source_height_pxl = getPixelsFromLat(source_lon, drone_lon_last);
+    dest_width_pxl = getPixelsFromLon(dest_lat, drone_lat_last);
+    dest_height_pxl = getPixelsFromLat(dest_lon, drone_lon_last);
 
     let x1 = Math.round(source_width_pxl + (svg_size / 2));
     let y1 = Math.round(source_height_pxl + (svg_size / 2));
