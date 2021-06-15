@@ -189,14 +189,14 @@ function updateJSON() {
                             break;
                         case "celltowers":
                             $.each(data["drone"][key], function(key, val) {
-                                addTower(val["latitude"], val["longitude"], val["id"]);
+                                addTower(val["latitude"], val["longitude"], key);
                             });
                     }
                 });
             } else if (key == "stations") {
                 // ground stations
                 $.each(data[key], function(key, val) {
-                    addGroundStation(val["latitude"], val["longitude"], val["id"]);
+                    addGroundStation(val["latitude"], val["longitude"], key);
                 });
             } else if (key == "weights") {
                 // generated graph data
@@ -209,15 +209,10 @@ function updateJSON() {
             } else if (key == "basestation") {
                 // basestation data
                 $.each(data[key], function(key, val) {
-                    if (key == "network") {
-                        var lastItem = null;
+                    if (key == "net_path") {
                         $.each(data["basestation"][key], function(key, val) {
-                            if (lastItem === null) {
-                                lastItem = val;
-                            } else {
-                                addPathByID(lastItem, val, true);
-                                lastItem = val;
-                            }
+                            var link = val["link"];
+                            addPathByID(link[0], link[1], true);
                         });
                     }
                 });
