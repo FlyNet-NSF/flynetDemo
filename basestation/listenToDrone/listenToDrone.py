@@ -199,7 +199,7 @@ def getGroundStationIPAddresses():
   for entry in current_hosts.entries:
     if entry.names is not None:
       for name in entry.names:
-	if 'worker' in name:
+        if 'worker' in name:
           workerdict = { "name": name, "ipaddress": entry.address }
           groundstations.append(workerdict)
   return groundstations
