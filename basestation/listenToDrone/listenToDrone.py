@@ -17,6 +17,7 @@ from geopy import Point
 from geographiclib.geodesic import Geodesic
 from distutils.util import strtobool
 from collections import defaultdict
+from python_hosts import Hosts, HostsEntry
 
 def readConfig(file):
   config = configparser.ConfigParser()
@@ -36,7 +37,7 @@ def main(args):
   dronechannel.queue_declare(queue=args.drone_queue, durable=True)
 
   ground_stations = []
-
+          
   def callback(ch, method, properties, body):
     droneData = json.loads(body)
     print(" [x] Received %s" % droneData)
@@ -191,6 +192,17 @@ def generateGroundStations(location, existing = []):
 
   return out
 
+def getGroundStationIPAddresses():
+  #available ground station IP addresses can be found in /etc/hosts, and possibly modulated by an independent process
+  current_hosts = Hosts()
+  groundstations = []
+  for entry in current_hosts.entries:
+    if entry.names is not None:
+      for name in entry.names:
+	if 'worker' in name:
+          workerdict = { "name": name, "ipaddress": entry.address }
+          groundstations.append(workerdict)
+  return groundstations
 
 def getTowerInfo(thisNetworkName):
   #not used at present, but if we wanted to do the simulated network overlay here on the basestation side instead of the web app, this could be useful
