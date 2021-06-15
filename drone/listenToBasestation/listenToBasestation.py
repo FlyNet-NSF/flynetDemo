@@ -26,19 +26,25 @@ def main(args):
   droneconnection = pika.BlockingConnection(pika.ConnectionParameters(host=args.drone_host, virtual_host=args.drone_vhost, credentials=credentials))
   dronechannel = droneconnection.channel()
   dronechannel.queue_declare(queue=args.drone_queue, durable=True)
-  #outgoingDevice = "eth0"
+  outgoingDevice = "eth2"  # subject to change
   
   def callback(ch, method, properties, body):
     basestationCommand = json.loads(body)
     print(" [x] Received %s" % basestationCommand)
-    #addedLatency = basestationCommand['latency']
-    #rateLimit = basestationCommand['rate']
-    #network = basestationCommand['network']
-    #networkModification = "sudo tc qdisc replace dev " + outgoingDevice + " root netem delay " + str(addedLatency) + "ms rate " + str(rateLimit) + "Mbit"
-    #print(networkModification)
-    #os.system(networkModification)
-    path = basestationCommand['network']
-    print("Using path " + str(path))
+    path = basestationCommand['net_path']
+    first_path = path[0]  # path from drone to tower
+    outgoing_bw = round(first_path['bw'])
+    outgoing_latency = round(first_path['latency'])
+
+    if os.geteuid() != 0:
+      print("Not running as root!")
+      exit(1)
+    
+    networkModification = "tc qdisc replace dev " + outgoingDevice + " root netem delay " + str(outgoing_latency) + "ms rate " + str(outgoing_bw) + "Mbit"
+    print("Running command: " + networkModification)
+    os.system(networkModification)
+
+    print("Using path:\n " + str(path))
 
     #now send video to somewhere
 
