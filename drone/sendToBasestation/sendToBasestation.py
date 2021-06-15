@@ -19,6 +19,7 @@ from distutils.util import strtobool
 
 # constants
 networks = ("verizon", "att", "sprint", "comcast")
+worker_interface = "eth2"
 
 def readConfig(file):
   config = configparser.ConfigParser()
@@ -38,7 +39,7 @@ def main(args):
   currentBattery = random.randint(50, 100)
   endless = 0
 
-  cell_towers = []
+  cell_towers = {}
 
   while currentBattery > 10:
     droneData = {}
@@ -65,11 +66,14 @@ def main(args):
 
     cell_towers = generateCellTowers(drone_point, drone_heading, cell_towers)  # regenerate cell towers
 
-    for tower in cell_towers:
+    for id,tower in cell_towers.items():
       towerDistanceCalc = Geodesic.WGS84.Inverse(currentLat, currentLon, tower['latitude'], tower['longitude'])
       towerDistance = towerDistanceCalc['s12']
-      rtt = towerDistance + random.randint(-20, 20)  # calculate RTT with some randomness
+      rtt = towerDistance / 1000  # calculate RTT with some randomness (factor of distance)
       tower['rtt'] = rtt
+
+      bw = round(random.random() * 35)  # in mb/s
+      tower['bw'] = bw
 
     droneData['celltowers'] = cell_towers
 
@@ -86,37 +90,58 @@ def main(args):
   print("Flight is complete.  Exiting")
   sys.exit()
   
-def generateCellTowers(location, track, existing = []):
-  count = 4
+def generateCellTowers(location, track, existing = {}):
+  mincount = 4
   distance_limit = 10000  # meters from drone to cell tower
   loc_lat = location.latitude
   loc_long = location.longitude
 
-  # remove out of range cell towers
-  for tower in existing:
-    tower_lon = tower['longitude']
-    tower_lat = tower['latitude']
-
-    drone_tower_distance = Geodesic.WGS84.Inverse(location.latitude, location.longitude, tower_lat, tower_lon)['s12']  # calculate distance
-    print(drone_tower_distance)
-
-    if drone_tower_distance > distance_limit:
-      existing.remove(tower)
-
   out = existing
-  # add stations if needed
-  if len(existing) < count:
-    for i in range(count - len(existing)):
-      rand_distance = distance_limit - random.random() * (distance_limit / 200)  # generate a distance on the edge of the range of the drone
-      rel_bearing = random.random() * 120 - 60  # calculate a random relative heading between -60 and 60 degrees from the drone
+
+  def getGenCount():
+    amount = mincount + round(random.random() * 4 - 2) - len(existing)
+    if amount < 0:
+      return 0
+    else:
+      return amount
+
+  if len(existing) == 0:
+    # first tower generation
+    for i in range(getGenCount()):
+      rand_distance = distance_limit * random.random()  # generate a distance on the edge of the range of the drone
+      rel_bearing = random.random() * 360 - 180  # calculate a random relative heading between 180 and -180 degrees from the drone
 
       new_tower_dist = distance(kilometers=rand_distance / 1000)
       new_tower = new_tower_dist.destination(location, rel_bearing)  # find coordinates of new tower
 
       longitude = new_tower.longitude
       latitude = new_tower.latitude
-      out.append({'id': "ct_" + str(longitude) + "_" + str(latitude), 'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)})  # add in a new random ground station
+      key = "ct_" + str(longitude) + "_" + str(latitude)
+      out[key] = {'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)}  # add in a new random ground station
+  else:
+    # remove out of range cell towers
+    for tower in existing:
+      tower_lon = tower['longitude']
+      tower_lat = tower['latitude']
 
+      drone_tower_distance = Geodesic.WGS84.Inverse(location.latitude, location.longitude, tower_lat, tower_lon)['s12']  # calculate distance
+
+      if drone_tower_distance > distance_limit:
+        existing.remove(tower)
+
+    # add stations if needed
+    for i in range(getGenCount()):
+      rand_distance = distance_limit - random.random() * (distance_limit / 200)  # generate a distance on the edge of the range of the drone
+      rel_bearing = random.random() * 180 - 90  # calculate a random relative heading between -90 and 90 degrees from the drone
+
+      new_tower_dist = distance(kilometers=rand_distance / 1000)
+      new_tower = new_tower_dist.destination(location, rel_bearing)  # find coordinates of new tower
+
+      longitude = new_tower.longitude
+      latitude = new_tower.latitude
+      out["ct_" + str(longitude) + "_" + str(latitude)] = {'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)}  # add in a new random ground station
+
+  print(out)
   return out
 
 def handleArguments(properties):
