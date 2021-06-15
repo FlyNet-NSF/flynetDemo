@@ -60,18 +60,35 @@ def main(args):
     station_to_use = max_element
     links = getPath(prevs, station_to_use)
 
+    pathList = []
     for link in links:
       # loop through each link in the network (shortest path)
       source = link[0]
       dest = link[1]
 
+      dest_node = None
       source_neighbors = graph[source]
-      
+      for neighbor in source_neighbors:
+        if neighbor[0] == dest:
+          # found neighbor
+          dest_node = neighbor
 
-      
+      if dest_node is None:
+        print("Couldn't find node?")
+        exit(1)
+
+      new_dict = {
+        'link': link,
+        'weight': dest_node[1],
+        'latency': dest_node[2][0],
+        'bw': dest_node[2][1],
+        'load': dest_node[2][2]
+      }
+
+      pathList.append(new_dict)
 
     basestationData = {}
-    basestationData['network'] = path_to_use
+    basestationData['net_path'] = pathList
     submitToDrone(args, dronechannel, basestationData)
 
     if args.state is not None:
