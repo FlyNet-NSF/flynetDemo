@@ -72,8 +72,9 @@ def main(args):
       rtt = towerDistance / 1000  # calculate RTT with some randomness (factor of distance)
       tower['rtt'] = rtt
 
-      bw = round(random.random() * 35)  # in mb/s
-      tower['bw'] = bw
+      if 'bw' not in tower:
+        bw = round(random.random() * 35)  # in mb/s
+        tower['bw'] = bw
 
     droneData['celltowers'] = cell_towers
 
@@ -119,15 +120,20 @@ def generateCellTowers(location, track, existing = {}):
       key = "ct_" + str(longitude) + "_" + str(latitude)
       out[key] = {'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)}  # add in a new random ground station
   else:
+    delList = []
     # remove out of range cell towers
-    for tower in existing:
+    for id,tower in existing.items():
       tower_lon = tower['longitude']
       tower_lat = tower['latitude']
 
       drone_tower_distance = Geodesic.WGS84.Inverse(location.latitude, location.longitude, tower_lat, tower_lon)['s12']  # calculate distance
 
       if drone_tower_distance > distance_limit:
-        existing.remove(tower)
+        delList.append(id)
+
+    
+    for id in delList:
+      del existing[id]
 
     # add stations if needed
     for i in range(getGenCount()):
@@ -141,7 +147,6 @@ def generateCellTowers(location, track, existing = {}):
       latitude = new_tower.latitude
       out["ct_" + str(longitude) + "_" + str(latitude)] = {'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)}  # add in a new random ground station
 
-  print(out)
   return out
 
 def handleArguments(properties):
