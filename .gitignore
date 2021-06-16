@@ -3,3 +3,5 @@
 basestation/listenToDrone/config.ini
 drone/listenToBasestation/config.ini
 drone/sendToBasestation/config.ini
+
+basestation/visualization/state.json

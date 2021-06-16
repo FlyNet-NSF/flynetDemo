@@ -38,8 +38,8 @@ def main(args):
   dronechannel = droneconnection.channel()
   dronechannel.queue_declare(queue=args.drone_queue, durable=True)
 
-  ground_stations = []
-          
+  ground_stations = {}
+  
   def callback(ch, method, properties, body):
     droneData = json.loads(body)
     print(" [x] Received %s" % droneData)
@@ -48,7 +48,6 @@ def main(args):
 
     nonlocal ground_stations
     ground_stations = generateGroundStations(droneLL, ground_stations)
-    # In the medium-term ground stations should be sent to the drone, who can test RTT directly off of cell towers, and return results
 
     towers = droneData['celltowers']
     graph = calculateWeights(towers, ground_stations)
@@ -57,12 +56,39 @@ def main(args):
     max_val = float('inf')
     max_element = None
     for node in rtt:
-      if node.startswith("gs-"):
+      if node.startswith("gs_"):
         max_val = rtt[node]
         max_element = node
     
     station_to_use = max_element
-    path_to_use = getPath(prevs, station_to_use)
+    links = getPath(prevs, station_to_use)
+
+    pathList = []
+    for link in links:
+      # loop through each link in the network (shortest path)
+      source = link[0]
+      dest = link[1]
+
+      dest_node = None
+      source_neighbors = graph[source]
+      for neighbor in source_neighbors:
+        if neighbor[0] == dest:
+          # found neighbor
+          dest_node = neighbor
+
+      if dest_node is None:
+        print("Couldn't find node?")
+        exit(1)
+
+      new_dict = {
+        'link': link,
+        'weight': dest_node[1],
+        'latency': dest_node[2][0],
+        'bw': dest_node[2][1],
+        'load': dest_node[2][2]
+      }
+
+      pathList.append(new_dict)
 
     prometheusQueryURL = 'http://dynamo-broker1.exogeni.net:9090/api/v1/query?query='
     workerinfo = getWorkerInfo()
@@ -129,38 +155,24 @@ def main(args):
     
     
     basestationData = {}
-    basestationData['network'] = path_to_use
+    basestationData['net_path'] = pathList
     submitToDrone(args, dronechannel, basestationData)
 
-    """
-    droneNetworks = droneData['networkConnections']
-    maxCellUtility = 0
-    bestNetwork = None
-    bestTowerDistance = 0
-    for droneNetwork in droneNetworks:
-      #really we want to combine cell network info with processing station load info gathered from mobius
-      #for short term testing we'll just make a decision based on the cell data
-      thisNetworkName = droneNetwork['network']
-      towerResult = getTowerInfo(thisNetworkName)
-      if towerResult is not None:
-        towerDistanceCalc = Geodesic.WGS84.Inverse(droneLL[1], droneLL[0], towerResult['latitude'], towerResult['longitude'])
-        towerDistance = towerDistanceCalc['s12'] #https://geographiclib.sourceforge.io/html/python/code.html#geographiclib.geodesic.Geodesic.Inverse
-        averageUtilization = towerResult['averageUtilization']
-        thisCellUtility = getCellUtility(towerDistance, averageUtilization)
-        if thisCellUtility > maxCellUtility:
-          maxCellUtility = thisCellUtility
-          bestNetwork = thisNetworkName
-          bestTowerDistance = towerDistance
-    basestationData = {}
-    if bestNetwork is not None:
-      basestationData['network'] = bestNetwork
-      #send some arbitrary tuning params
-      basestationData['latency'] = bestTowerDistance/10000
-      basestationData['rate'] = random.randint(7, 10) #rate some random number in mbps assuming 10mbps was the max
-      submitToDrone(args, dronechannel, basestationData)
-    else:
-      print("no networks to use... don't process this data")
-    """
+    if args.state is not None:
+      # save to state
+      stateFile = args.state
+
+      jsonDict = {
+        "drone": droneData,
+        "stations": ground_stations,
+        "weights": graph,
+        "basestation": basestationData
+      }
+
+      json_dump = json.dumps(jsonDict)
+
+      with open(stateFile, "w") as file: # Use file to refer to the file object
+        data = file.write(json_dump)
 
   basechannel.basic_consume(queue=args.basestation_queue,
                         auto_ack=True,
@@ -169,21 +181,47 @@ def main(args):
   print(' [*] Waiting for messages. ')
   basechannel.start_consuming()
 
+def normalize(parameters):
+  rtt = parameters[0]
+  bw = parameters[1]
+  load = parameters[2]
+
+  rtt = rtt / 1000  # RTT
+  bw = bw / 1000  # BW
+  load = load / 100  # Load
+
+  return [rtt, bw, load]
+
 def calculateWeights(towers, stations):
+  # weights for calculating overall weight
+  weights = [20, 30, 50]  # weights (rtt, bw, load)
+
   graph = defaultdict(list)
-  for tower in towers:
-    for station in stations:
+  for t_id,tower in towers.items():
+    for s_id,station in stations.items():
       # SIMULATION (weight calculation)
       tower_to_gs = Geodesic.WGS84.Inverse(tower['latitude'], tower['longitude'], station['latitude'], station['longitude'])
       tower_to_gs_distance = tower_to_gs['s12']
-      rtt = tower_to_gs_distance + random.randint(-20, 20)  # calculate RTT with some randomness
+      rtt = tower_to_gs_distance / 1000  # calculate RTT with some randomness
+      bw = random.random() * 1000  # up to 1000mb link bandwidth
+      load = 20  # GS load (fixed value for now)
+
+      parameters = [rtt, bw, load]
+      param_norm = normalize(parameters)
+      weighted_params = [a * b for a, b in zip(weights, param_norm)]
+      total_weight = sum(weighted_params)
       # END SIMULATION
 
-      graph[tower['id']].append((station['id'], rtt / 2))  # add path to graph
-      graph[station['id']].append((tower['id'], rtt / 2))
+      graph[t_id].append([s_id, total_weight, parameters])  # add path to graph
+      graph[s_id].append([t_id, total_weight, parameters])
     
-    graph['drone'].append((tower['id'], tower['rtt'] / 2))  # add drone node
-    graph[tower['id']].append(("drone", tower['rtt'] / 2))  # add drone node
+    parameters = [tower['rtt'], tower['bw'], 0]
+    param_norm = normalize(parameters)
+    weighted_params = [a * b for a, b in zip(weights, param_norm)]
+    total_weight = sum(weighted_params)
+
+    graph['drone'].append([t_id, total_weight, parameters])  # add drone node
+    graph[t_id].append(["drone", total_weight, parameters])  # add drone node
 
   return graph
 
@@ -224,16 +262,15 @@ def shortestPath(graph, startNode):
 def getPath(prev, destinationNode):
   out = []
   currentNode = destinationNode
-  out.append(currentNode)
 
   while prev[currentNode] != "":
-    out.append(prev[currentNode])
+    out.insert(0, [prev[currentNode], currentNode])
     currentNode = prev[currentNode]
 
   return out
 
-def generateGroundStations(location, existing = []):
-  count = 10
+def generateGroundStations(location, existing = {}):
+  count = 2
   location_delta = 0.1
   loc_lat = location[1]
   loc_long = location[0]
@@ -244,9 +281,13 @@ def generateGroundStations(location, existing = []):
   max_lat = loc_lat + location_delta
 
   # remove out of range stations
-  for station in existing:
+  delList = []
+  for id,station in existing.items():
     if station['longitude'] < min_long or station['longitude'] > max_long or station['latitude'] < min_lat or station['latitude'] > max_lat:
-      existing.remove(station)
+      delList.append(id)
+
+  for id in delList:
+    del existing[id]
 
   out = existing
   # add stations if needed
@@ -254,7 +295,8 @@ def generateGroundStations(location, existing = []):
     for i in range(count - len(existing)):
       longitude = min_long + random.random() * 2 * location_delta
       latitude = min_lat + random.random() * 2 * location_delta
-      out.append({'id': "gs" + str(longitude) + "-" + str(latitude), 'longitude': longitude, 'latitude': latitude})  # add in a new random ground station
+      key = "gs_" + str(longitude) + "_" + str(latitude)
+      out[key] = {'longitude': longitude, 'latitude': latitude}  # add in a new random ground station
 
   return out
 
@@ -322,6 +364,7 @@ def handleArguments(properties):
                           type=str, help="The drone RabbitMQ exchange name.  Default is in the config file.")
   parser.add_argument("-n", "--noisy", dest="noisy", action='store_true',
                       help="Enable noisy output.")
+  parser.add_argument("-s", "--state", dest="state", default=properties['state_file'], help="File path to state json")
   return parser.parse_args()
 
 def daemonize():

@@ -1,0 +1,32 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="style.css">
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+    </head>
+
+    <body>
+        <div data-id="drone" id="drone_icon" class="center">
+            <img src="assets/drone.png">
+        </div>
+
+        <div id="drone" class="center">
+            <canvas id="drawboard" width="1000" height="1000"></canvas>
+        </div>
+
+        <div id="drone_info" class="center">
+            <span>Lat: </span><span class='lat_input'></span><br>
+            <span>Lon: </span><span class='lon_input'></span><br>
+            <span>Heading: </span><span class='head_input'></span><br>
+            <span>Battery: </span><span class='bat_input'></span>
+        </div>
+
+        <div id="drone_vrule"></div>
+        <div id="drone_hrule"></div>
+
+        <div id="range_circle" class="center"></div>
+
+        <script src="main.js"></script>
+    </body>
+
+</html>
