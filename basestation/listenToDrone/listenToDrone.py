@@ -122,7 +122,7 @@ def main(args):
             else:
               print ("no results present")
           else:
-	    print ("no results present")
+            print ("no results present")
         else:
           print ("query failed")
       else:
