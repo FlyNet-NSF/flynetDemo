@@ -99,59 +99,73 @@ def main(args):
       statusQueryURL = prometheusQueryURL + 'up{instance="' + workerinf['ipaddress'] + ':9100"}'
       response = requests.get(statusQueryURL)
       if response.status_code == 200:
+        connected = 1
         nodestatusJSON = json.loads(response.content)
-        if (nodestatusJSON["status"] == "success") :
-          querydata = nodestatusJSON["data"]
-          result = querydata["result"]
-          if (result):
-            value = result[0]["value"]
-            status = value[1]
-            if (status == "1"):
-              print ("node is online")
-              loadQueryURL = prometheusQueryURL + 'node_load1{instance="' + workerinf['ipaddress'] + ':9100"}'
-              response = requests.get(loadQueryURL)
-              if response.status_code == 200:
-                nodeloadJSON = json.loads(response.content)
-                if (nodeloadJSON["status"] == "success") :
-                  querydata = nodeloadJSON["data"]
-                  result = querydata["result"]
-                  if (result):
-                    value = result[0]["value"]
-                    load = value[1]
-                    print ("load: " + load)
-                  else:
-                    print ("no load given")
-                else:
-                  print ("load query failed")
-              else:
-                print("response status: " + str(response.status_code))
-
-              networkQueryURL = prometheusQueryURL + 'rate(node_network_receive_bytes_total{instance="' + workerinf['ipaddress'] + ':9100"}[30s])'
-              response = requests.get(networkQueryURL)
-              if response.status_code == 200:
-                nodenetworkJSON = json.loads(response.content)
-                if (nodenetworkJSON["status"] == "success") :
-                  querydata = nodenetworkJSON["data"]
-                  result = querydata["result"]
-                  if (result):
-                    #unclear what device to monitor right now
-                    value = result[2]["value"]
-                    load = value[1]
-                    print ("bytes received in the last 30s: " + load)
-                  else:
-                    print ("no network info given")
-                else:
-                  print ("network query failed")
-              else:
-                print("response status: " + str(response.status_code))
-            else:
-              print ("node is offline")
-          else:
-            print ("node is offline")
-        else:
-          print ("status query failed")
       else:
+        connected = 0
         print("response status: " + str(response.status_code))
+
+      online = 0
+      if connected and nodestatusJSON["status"] is not None and nodestatusJSON["data"] is not None:
+        if (nodestatusJSON["status"] == "success"):
+          querydata = nodestatusJSON["data"]
+          if querydata["result"] is not None:
+            result = querydata["result"]
+            if (result):
+              value = result[0]["value"]
+              status = value[1]
+              if (status == "1"):
+                print ("node is online")
+                online = 1
+              else:
+                print ("node is offline")
+            else:
+              print ("no results present")
+          else:
+	    print ("no results present")
+        else:
+          print ("query failed")
+      else:
+        print ("not connected or null result to query")
+
+      if connected and online:
+        loadQueryURL = prometheusQueryURL + 'node_load1{instance="' + workerinf['ipaddress'] + ':9100"}'
+        response = requests.get(loadQueryURL)
+        if response.status_code == 200:
+          nodeloadJSON = json.loads(response.content)
+          if (nodeloadJSON["status"] == "success") :
+            querydata = nodeloadJSON["data"]
+            result = querydata["result"]
+            if (result):
+              value = result[0]["value"]
+              load = value[1]
+              print ("load: " + load)
+            else:
+              print ("no load results given")
+          else:
+            print ("load query failed")
+        else:
+          print("response status: " + str(response.status_code))
+          
+        networkQueryURL = prometheusQueryURL + 'rate(node_network_receive_bytes_total{instance="' + workerinf['ipaddress'] + ':9100"}[30s])'
+        response = requests.get(networkQueryURL)
+        if response.status_code == 200:
+          nodenetworkJSON = json.loads(response.content)
+          if (nodenetworkJSON["status"] == "success") :
+            querydata = nodenetworkJSON["data"]
+            result = querydata["result"]
+            if (result):
+              #unclear what device to monitor right now
+              value = result[2]["value"]
+              load = value[1]
+              print ("bytes received in the last 30s: " + load)
+            else:
+              print ("no network results given")
+          else:
+            print ("network query failed")
+        else:
+          print("response status: " + str(response.status_code))
+    
     
     
     basestationData = {}
@@ -301,16 +315,17 @@ def generateGroundStations(location, existing = {}):
   return out
 
 def getWorkerInfo():
-  #available ground station IP addresses can be found in /etc/hosts, and possibly modulated by an independent process
+  #available worker IP addresses can be found in /etc/hosts, and possibly modulated by an independent process
   current_hosts = Hosts()
-  groundstations = []
+  #print("hosts path: " + current_hosts.hosts_path)
+  workers = []
   for entry in current_hosts.entries:
     if entry.names is not None:
       for name in entry.names:
         if 'worker' in name:
           workerdict = { "name": name, "ipaddress": entry.address }
-          groundstations.append(workerdict)
-  return groundstations
+          workers.append(workerdict)
+  return workers
 
 def getWorkerRTT_tcpSocket(host, portno, timeout):
   sock_params = (host, portno)
