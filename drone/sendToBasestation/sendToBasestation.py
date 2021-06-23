@@ -35,19 +35,26 @@ def main(args):
   currentLat = 32.0
   currentLon = -96.0
   currentAlt = 500  # ft
-
+  currentTuple = [currentLon, currentLat, currentAlt]
   currentBattery = random.randint(50, 100)
   endless = 0
 
   cell_towers = {}
+  droneData = {}
+  droneData['type'] = "Feature"
+  droneData['properties'] = {}
+  droneData['properties']['eventName'] = "FlyNetDemo"
+  droneData['userProperties'] = {}
+  droneData['userProperties']['celltowers'] = {}
+  droneData['geometry'] = {}
+  droneData['geometry']['type'] = "LineString"
+  droneData['geometry']['coordinates'] = []
+  droneData['geometry']['coordinates'].append(currentTuple)
 
   while currentBattery > 10:
-    droneData = {}
 
     # update drone data
-    droneData['latitude'] = currentLat
-    droneData['longitude'] = currentLon
-    droneData['batterylife'] = currentBattery
+    droneData['userProperties']['batterylife'] = currentBattery
 
     # move drone
     prevLat = currentLat
@@ -55,28 +62,29 @@ def main(args):
 
     currentLat = currentLat + .01
     currentLon = currentLon - .01
-
+    currentTuple = [currentLon, currentLat, currentAlt]
+    
     # calculate heading
     drone_change = Geodesic.WGS84.Inverse(currentLat, currentLon, prevLat, prevLon)
     drone_heading = drone_change['azi1']
 
-    droneData['heading'] = drone_heading
+    droneData['userProperties']['heading'] = drone_heading
 
     drone_point = Point(prevLat, prevLon, currentAlt)
 
-    cell_towers = generateCellTowers(drone_point, drone_heading, cell_towers)  # regenerate cell towers
+    cell_towers = generateCellTowers(drone_point, cell_towers)  # regenerate cell towers
 
     for id,tower in cell_towers.items():
-      towerDistanceCalc = Geodesic.WGS84.Inverse(currentLat, currentLon, tower['latitude'], tower['longitude'])
+      towerDistanceCalc = Geodesic.WGS84.Inverse(currentLat, currentLon, tower['geometry']['coordinates'][1], tower['geometry']['coordinates'][0])
       towerDistance = towerDistanceCalc['s12']
       rtt = towerDistance / 1000  # calculate RTT with some randomness (factor of distance)
-      tower['rtt'] = rtt
+      tower['properties']['rtt'] = rtt
 
       if 'bw' not in tower:
         bw = round(random.random() * 35)  # in mb/s
-        tower['bw'] = bw
+        tower['properties']['bw'] = bw
 
-    droneData['celltowers'] = cell_towers
+    droneData['userProperties']['celltowers'] = cell_towers
 
     # battery simulation
     currentBattery = currentBattery - 0.1
@@ -91,12 +99,9 @@ def main(args):
   print("Flight is complete.  Exiting")
   sys.exit()
   
-def generateCellTowers(location, track, existing = {}):
+def generateCellTowers(location, existing = {}):
   mincount = 4
   distance_limit = 10000  # meters from drone to cell tower
-  loc_lat = location.latitude
-  loc_long = location.longitude
-
   out = existing
 
   def getGenCount():
@@ -118,13 +123,22 @@ def generateCellTowers(location, track, existing = {}):
       longitude = new_tower.longitude
       latitude = new_tower.latitude
       key = "ct_" + str(longitude) + "_" + str(latitude)
-      out[key] = {'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)}  # add in a new random ground station
+      out[key] = {}
+      out[key]['type'] = "Feature"
+      out[key]['geometry'] = {}
+      out[key]['geometry']['type'] = "Point"
+      this_tuple = [longitude, latitude, 0]
+      out[key]['geometry']['coordinates'] = this_tuple
+      out[key]['properties'] = {}
+      out[key]['properties']['tower'] = key
+      out[key]['properties']['network'] = random.choice(networks)
+      
   else:
     delList = []
     # remove out of range cell towers
     for id,tower in existing.items():
-      tower_lon = tower['longitude']
-      tower_lat = tower['latitude']
+      tower_lon = tower['geometry']['coordinates'][0]
+      tower_lat = tower['geometry']['coordinates'][1]
 
       drone_tower_distance = Geodesic.WGS84.Inverse(location.latitude, location.longitude, tower_lat, tower_lon)['s12']  # calculate distance
 
@@ -145,7 +159,16 @@ def generateCellTowers(location, track, existing = {}):
 
       longitude = new_tower.longitude
       latitude = new_tower.latitude
-      out["ct_" + str(longitude) + "_" + str(latitude)] = {'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)}  # add in a new random ground station
+      key = "ct_" + str(longitude) + "_" + str(latitude)
+      out[key] = {}
+      out[key]['type'] = "Feature"
+      out[key]['geometry'] = {}
+      out[key]['geometry']['type'] = "Point"
+      this_tuple = [longitude, latitude, 0]
+      out[key]['geometry']['coordinates'] = this_tuple
+      out[key]['properties'] = {}
+      out[key]['properties']['tower'] = key
+      out[key]['properties']['network'] = random.choice(networks)
 
   return out
 
