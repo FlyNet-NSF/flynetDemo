@@ -44,8 +44,9 @@ def main(args):
   droneData['type'] = "Feature"
   droneData['properties'] = {}
   droneData['properties']['eventName'] = "FlyNetDemo"
-  droneData['properties']['userProperties'] = {}
-  droneData['properties']['userProperties']['celltowers'] = {}
+  droneData['properties']['classification'] = "ongoingFlight"
+  droneData['userProperties'] = {}
+  droneData['userProperties']['celltowers'] = {}
   droneData['geometry'] = {}
   droneData['geometry']['type'] = "LineString"
   droneData['geometry']['coordinates'] = []
@@ -54,7 +55,7 @@ def main(args):
   while currentBattery > 10:
 
     # update drone data
-    droneData['properties']['userProperties']['batterylife'] = currentBattery
+    droneData['userProperties']['batterylife'] = currentBattery
 
     # move drone
     prevLat = currentLat
@@ -68,7 +69,7 @@ def main(args):
     drone_change = Geodesic.WGS84.Inverse(currentLat, currentLon, prevLat, prevLon)
     drone_heading = drone_change['azi1']
 
-    droneData['properties']['userProperties']['heading'] = drone_heading
+    droneData['userProperties']['heading'] = drone_heading
 
     drone_point = Point(prevLat, prevLon, currentAlt)
 
@@ -82,9 +83,9 @@ def main(args):
 
       if 'bw' not in tower:
         bw = round(random.random() * 35)  # in mb/s
-        tower['properties']['bw'] = bw
+        tower['properties']['bandwidth'] = bw
 
-    droneData['properties']['userProperties']['celltowers'] = cell_towers
+    droneData['userProperties']['celltowers'] = cell_towers
 
     # battery simulation
     currentBattery = currentBattery - 0.1
@@ -130,7 +131,8 @@ def generateCellTowers(location, existing = {}):
       this_tuple = [longitude, latitude, 0]
       out[key]['geometry']['coordinates'] = this_tuple
       out[key]['properties'] = {}
-      out[key]['properties']['tower'] = key
+      out[key]['properties']['classification'] = "celltower"
+      out[key]['properties']['eventName'] = key
       out[key]['properties']['network'] = random.choice(networks)
       
   else:
