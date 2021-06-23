@@ -64,7 +64,7 @@ def main(args):
     currentLat = currentLat + .01
     currentLon = currentLon - .01
     currentTuple = [currentLon, currentLat, currentAlt]
-    
+    droneData['geometry']['coordinates'].append(currentTuple)
     # calculate heading
     drone_change = Geodesic.WGS84.Inverse(currentLat, currentLon, prevLat, prevLon)
     drone_heading = drone_change['azi1']
