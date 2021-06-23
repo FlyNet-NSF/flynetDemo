@@ -176,6 +176,12 @@ def main(args):
       # save to state
       stateFile = args.state
 
+      #jsonDict = {}
+      #jsonDict['type'] = "FeatureCollection"
+      #jsonDict['Features'] = []
+      #jsonDict['Features'].append(droneData)
+      #jsonDict['Features'].append(ground_stations)
+      
       jsonDict = {
         "drone": droneData,
         "stations": ground_stations,
@@ -315,7 +321,7 @@ def generateGroundStations(location, existing = {}):
       out[key]['type'] = "Feature"
       out[key]['properties'] = {}
       out[key]['properties']['classification'] = "groundstation"
-      out[key]['properties']['eventName'] = key
+      out[key]['properties']['name'] = key
       out[key]['geometry'] = {}
       out[key]['geometry']['type'] = "Point"
       out[key]['geometry']['coordinates'] = this_tuple 
