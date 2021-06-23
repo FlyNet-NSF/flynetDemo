@@ -44,6 +44,7 @@ def main(args):
   droneData['type'] = "Feature"
   droneData['properties'] = {}
   droneData['properties']['eventName'] = "FlyNetDemo"
+  droneData['properties']['classification'] = "ongoingFlight"
   droneData['properties']['userProperties'] = {}
   droneData['properties']['userProperties']['celltowers'] = {}
   droneData['geometry'] = {}
@@ -82,7 +83,7 @@ def main(args):
 
       if 'bw' not in tower:
         bw = round(random.random() * 35)  # in mb/s
-        tower['properties']['bw'] = bw
+        tower['properties']['bandwidth'] = bw
 
     droneData['properties']['userProperties']['celltowers'] = cell_towers
 
@@ -130,7 +131,8 @@ def generateCellTowers(location, existing = {}):
       this_tuple = [longitude, latitude, 0]
       out[key]['geometry']['coordinates'] = this_tuple
       out[key]['properties'] = {}
-      out[key]['properties']['tower'] = key
+      out[key]['properties']['classification'] = "celltower"
+      out[key]['properties']['eventName'] = key
       out[key]['properties']['network'] = random.choice(networks)
       
   else:
