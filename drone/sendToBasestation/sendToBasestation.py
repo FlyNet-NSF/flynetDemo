@@ -132,7 +132,7 @@ def generateCellTowers(location, existing = {}):
       out[key]['geometry']['coordinates'] = this_tuple
       out[key]['properties'] = {}
       out[key]['properties']['classification'] = "celltower"
-      out[key]['properties']['eventName'] = key
+      out[key]['properties']['name'] = key
       out[key]['properties']['network'] = random.choice(networks)
       
   else:
@@ -169,7 +169,7 @@ def generateCellTowers(location, existing = {}):
       this_tuple = [longitude, latitude, 0]
       out[key]['geometry']['coordinates'] = this_tuple
       out[key]['properties'] = {}
-      out[key]['properties']['tower'] = key
+      out[key]['properties']['name'] = key
       out[key]['properties']['network'] = random.choice(networks)
 
   return out
