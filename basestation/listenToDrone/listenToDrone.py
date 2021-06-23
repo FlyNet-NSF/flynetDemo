@@ -43,13 +43,13 @@ def main(args):
   def callback(ch, method, properties, body):
     droneData = json.loads(body)
     print(" [x] Received %s" % droneData)
-    droneLL = (droneData['longitude'], droneData['latitude'])
-    droneBatteryLife = droneData['batterylife']
+    droneLL = (droneData['geometry']['coordinates'][-1][0], droneData['geometry']['coordinates'][-1][1])
+    droneBatteryLife = droneData['properties']['userProperties']['batterylife']
 
     nonlocal ground_stations
     ground_stations = generateGroundStations(droneLL, ground_stations)
 
-    towers = droneData['celltowers']
+    towers = droneData['properties']['userProperties']['celltowers']
     graph = calculateWeights(towers, ground_stations)
     rtt, prevs = shortestPath(graph, "drone")
 
@@ -214,7 +214,7 @@ def calculateWeights(towers, stations):
   for t_id,tower in towers.items():
     for s_id,station in stations.items():
       # SIMULATION (weight calculation)
-      tower_to_gs = Geodesic.WGS84.Inverse(tower['latitude'], tower['longitude'], station['latitude'], station['longitude'])
+      tower_to_gs = Geodesic.WGS84.Inverse(tower['geometry']['coordinates'][1], tower['geometry']['coordinates'][0], station['geometry']['coordinates'][1], station['geometry']['coordinates'][0])
       tower_to_gs_distance = tower_to_gs['s12']
       rtt = tower_to_gs_distance / 1000  # calculate RTT with some randomness
       bw = random.random() * 1000  # up to 1000mb link bandwidth
@@ -229,7 +229,7 @@ def calculateWeights(towers, stations):
       graph[t_id].append([s_id, total_weight, parameters])  # add path to graph
       graph[s_id].append([t_id, total_weight, parameters])
     
-    parameters = [tower['rtt'], tower['bw'], 0]
+    parameters = [tower['properties']['userProperties']['rtt'], tower['properties']['userProperties']['bw'], 0]
     param_norm = normalize(parameters)
     weighted_params = [a * b for a, b in zip(weights, param_norm)]
     total_weight = sum(weighted_params)
@@ -297,7 +297,7 @@ def generateGroundStations(location, existing = {}):
   # remove out of range stations
   delList = []
   for id,station in existing.items():
-    if station['longitude'] < min_long or station['longitude'] > max_long or station['latitude'] < min_lat or station['latitude'] > max_lat:
+    if station['geometry']['coordinates'][0] < min_long or station['geometry']['coordinates'][0] > max_long or station['geometry']['coordinates'][1] < min_lat or station['geometry']['coordinates'][1] > max_lat:
       delList.append(id)
 
   for id in delList:
@@ -309,8 +309,16 @@ def generateGroundStations(location, existing = {}):
     for i in range(count - len(existing)):
       longitude = min_long + random.random() * 2 * location_delta
       latitude = min_lat + random.random() * 2 * location_delta
+      this_tuple = [longitude, latitude, 0]
       key = "gs_" + str(longitude) + "_" + str(latitude)
-      out[key] = {'longitude': longitude, 'latitude': latitude}  # add in a new random ground station
+      out[key] = {}
+      out[key]['type'] = "Feature"
+      out[key]['properties'] = {}
+      out[key]['properties']['classification'] = "groundstation"
+      out[key]['properties']['eventName'] = key
+      out[key]['geometry'] = {}
+      out[key]['geometry']['type'] = "Point"
+      out[key]['geometry']['coordinates'] = this_tuple 
 
   return out
 
