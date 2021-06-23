@@ -51,6 +51,7 @@ def main(args):
 
     towers = droneData['properties']['userProperties']['celltowers']
     graph = calculateWeights(towers, ground_stations)
+    graphGeoJSON = calculateWeightsGeoJSON(droneData, towers, ground_stations)
     rtt, prevs = shortestPath(graph, "drone")
 
     max_val = float('inf')
@@ -170,17 +171,31 @@ def main(args):
     
     basestationData = {}
     basestationData['net_path'] = pathList
+    dronePathName = pathList[0]['link'][0] + "_" + pathList[0]['link'][1] + "_link"
+    groundstationPathName = pathList[1]['link'][0] + "_" + pathList[1]['link'][1] + "_link"
+    
+    #{"net_path": [{"link": ["drone", "ct_-95.99335448724159_32.034022276430406"], "weight": 1.1584434516601756, "latency": 6.922172583008778, "bw": 34, "load": 0}, {"link": ["ct_-95.99335448724159_32.034022276430406", "gs_-96.12810614594274_32.07824729154417"], "weight": 21.272701295720545, "latency": 13.637583800437639, "bw": 366.66498732372645, "load": 20}]
+    
     submitToDrone(args, dronechannel, basestationData)
 
     if args.state is not None:
       # save to state
       stateFile = args.state
 
-      #jsonDict = {}
-      #jsonDict['type'] = "FeatureCollection"
-      #jsonDict['Features'] = []
-      #jsonDict['Features'].append(droneData)
-      #jsonDict['Features'].append(ground_stations)
+      geojsonDict = {}
+      geojsonDict['type'] = "FeatureCollection"
+      geojsonDict['Features'] = []
+      geojsonDict['Features'].append(droneData)
+      for s_id,station in ground_stations.items():
+        geojsonDict['Features'].append(station)
+      for thisLink in graphGeoJSON:
+        if thisLink['properties']['name'] == dronePathName or thisLink['properties']['name'] == groundstationPathName:
+          thisLink['properties']['preferredLink'] = "true"
+        else:
+          thisLink['properties']['preferredLink'] = "false"
+        
+        geojsonDict['Features'].append(thisLink)
+
       
       jsonDict = {
         "drone": droneData,
@@ -189,8 +204,8 @@ def main(args):
         "basestation": basestationData
       }
 
-      json_dump = json.dumps(jsonDict)
-
+      #json_dump = json.dumps(jsonDict)
+      json_dump = json.dumps(geojsonDict)
       with open(stateFile, "w") as file: # Use file to refer to the file object
         data = file.write(json_dump)
 
@@ -217,6 +232,7 @@ def calculateWeights(towers, stations):
   weights = [20, 30, 50]  # weights (rtt, bw, load)
 
   graph = defaultdict(list)
+  
   for t_id,tower in towers.items():
     for s_id,station in stations.items():
       # SIMULATION (weight calculation)
@@ -245,6 +261,63 @@ def calculateWeights(towers, stations):
 
   return graph
 
+def calculateWeightsGeoJSON(droneData, towers, stations):
+  # weights for calculating overall weight                                                                                                                 
+  weights = [20, 30, 50]  # weights (rtt, bw, load)                                                                                                        
+  graphGeoJSON = []
+  
+  for t_id,tower in towers.items():
+    this_tower_ll = tower['geometry']['coordinates']
+    for s_id,station in stations.items():
+      this_station_ll = station['geometry']['coordinates']
+      this_link = {}
+      this_link['type'] = "Feature"
+      this_link['geometry'] = {}
+      this_link['geometry']['type'] = "LineString"
+      this_link['geometry']['coordinates'] = []
+      this_link['geometry']['coordinates'].append(this_tower_ll)
+      this_link['geometry']['coordinates'].append(this_station_ll)
+      this_link['properties'] = {}
+      this_link['properties']['classification'] = "networkPath"
+      this_link['properties']['name'] = t_id + "_" + s_id + "_link" 
+      tower_to_gs = Geodesic.WGS84.Inverse(tower['geometry']['coordinates'][1], tower['geometry']['coordinates'][0], station['geometry']['coordinates'][1], station['geometry']['coordinates'][0])
+      tower_to_gs_distance = tower_to_gs['s12']
+      rtt = tower_to_gs_distance / 1000  # calculate RTT with some randomness                                                                             
+      bw = random.random() * 1000  # up to 1000mb link bandwidth                                                                                          
+      load = 20  # GS load (fixed value for now)                                                                                                          
+      parameters = [rtt, bw, load]
+      param_norm = normalize(parameters)
+      weighted_params = [a * b for a, b in zip(weights, param_norm)]
+      total_weight = sum(weighted_params)
+      # END SIMULATION                                                                                                                                     
+      this_link['properties']['weight'] = total_weight
+      this_link['properties']['rtt'] = param_norm[0]
+      this_link['properties']['bandwidth'] = param_norm[1]
+      this_link['properties']['load'] = param_norm[2]
+      graphGeoJSON.append(this_link)
+      
+    this_link = {}
+    this_link['type'] = "Feature"
+    this_link['geometry'] = {}
+    this_link['geometry']['type'] = "LineString"
+    this_link['geometry']['coordinates'] = []
+    this_link['geometry']['coordinates'].append(droneData['geometry']['coordinates'][-1])
+    this_link['geometry']['coordinates'].append(this_tower_ll)
+    parameters = [tower['properties']['rtt'], tower['properties']['bandwidth'], 0]
+    param_norm = normalize(parameters)
+    weighted_params = [a * b for a, b in zip(weights, param_norm)]
+    total_weight = sum(weighted_params)
+    this_link['properties'] = {}
+    this_link['properties']['name'] = "drone_" + t_id + "_link"
+    this_link['properties']['weight'] = total_weight
+    this_link['properties']['rtt'] = param_norm[0]
+    this_link['properties']['bandwidth'] = param_norm[1]
+    this_link['properties']['load'] = param_norm[2]
+    graphGeoJSON.append(this_link)
+
+  return graphGeoJSON
+  
+  
 def shortestPath(graph, startNode):
   # get unique nodes
   nodes = list(graph.keys())
