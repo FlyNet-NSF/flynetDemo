@@ -229,7 +229,7 @@ def calculateWeights(towers, stations):
       graph[t_id].append([s_id, total_weight, parameters])  # add path to graph
       graph[s_id].append([t_id, total_weight, parameters])
     
-    parameters = [tower['properties']['userProperties']['rtt'], tower['properties']['userProperties']['bw'], 0]
+    parameters = [tower['properties']['rtt'], tower['properties']['bandwidth'], 0]
     param_norm = normalize(parameters)
     weighted_params = [a * b for a, b in zip(weights, param_norm)]
     total_weight = sum(weighted_params)
