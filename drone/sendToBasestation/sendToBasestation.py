@@ -45,8 +45,8 @@ def main(args):
   droneData['properties'] = {}
   droneData['properties']['eventName'] = "FlyNetDemo"
   droneData['properties']['classification'] = "ongoingFlight"
-  droneData['userProperties'] = {}
-  droneData['userProperties']['celltowers'] = {}
+  droneData['properties']['userProperties'] = {}
+  droneData['properties']['userProperties']['celltowers'] = {}
   droneData['geometry'] = {}
   droneData['geometry']['type'] = "LineString"
   droneData['geometry']['coordinates'] = []
@@ -55,7 +55,7 @@ def main(args):
   while currentBattery > 10:
 
     # update drone data
-    droneData['userProperties']['batterylife'] = currentBattery
+    droneData['properties']['userProperties']['batterylife'] = currentBattery
 
     # move drone
     prevLat = currentLat
@@ -69,7 +69,7 @@ def main(args):
     drone_change = Geodesic.WGS84.Inverse(currentLat, currentLon, prevLat, prevLon)
     drone_heading = drone_change['azi1']
 
-    droneData['userProperties']['heading'] = drone_heading
+    droneData['properties']['userProperties']['heading'] = drone_heading
 
     drone_point = Point(prevLat, prevLon, currentAlt)
 
@@ -85,7 +85,7 @@ def main(args):
         bw = round(random.random() * 35)  # in mb/s
         tower['properties']['bandwidth'] = bw
 
-    droneData['userProperties']['celltowers'] = cell_towers
+    droneData['properties']['userProperties']['celltowers'] = cell_towers
 
     # battery simulation
     currentBattery = currentBattery - 0.1
