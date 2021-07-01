@@ -32,8 +32,8 @@ def main(args):
   basechannel = baseconnection.channel()
   basechannel.queue_declare(queue=args.basestation_queue, durable=True)
 
-  currentLat = 32.0
-  currentLon = -96.0
+  currentLat = 32.2
+  currentLon = -96.5
   currentAlt = 500  # ft
   currentTuple = [currentLon, currentLat, currentAlt]
   currentBattery = random.randint(50, 100)
@@ -46,7 +46,7 @@ def main(args):
   droneData['type'] = "Feature"
   droneData['properties'] = {}
   droneData['properties']['eventName'] = "FlyNetDemo"
-  droneData['properties']['classification'] = "ongoingFlight"
+  droneData['properties']['classification'] = "proposedFlight"
   droneData['properties']['userProperties'] = {}
   droneData['properties']['userProperties']['celltowers'] = {}
   droneData['properties']['userProperties']['celltowers']['type'] = "FeatureCollection"
@@ -176,6 +176,7 @@ def generateCellTowers(location, existing = []):
       this_tuple = [longitude, latitude, 0]
       this_feature['geometry']['coordinates'] = this_tuple
       this_feature['properties'] = {}
+      this_feature['properties']['classification'] = "celltower"
       this_feature['properties']['name'] = key
       this_feature['properties']['network'] = random.choice(networks)
       out.append(this_feature)
