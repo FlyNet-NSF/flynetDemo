@@ -185,19 +185,19 @@ def main(args):
 
       groundstationCollection = {}
       groundstationCollection['type'] = "FeatureCollection"
-      groundstationCollection['Features'] = []
+      groundstationCollection['features'] = []
       for station in ground_stations:
-        groundstationCollection['Features'].append(station)
+        groundstationCollection['features'].append(station)
 
       linkCollection = {}
       linkCollection['type'] = "FeatureCollection"
-      linkCollection['Features'] = []
+      linkCollection['features'] = []
       for thisLink in graphGeoJSON:
         if thisLink['properties']['name'] == dronePathName or thisLink['properties']['name'] == groundstationPathName:
           thisLink['properties']['preferredLink'] = "true"
         else:
           thisLink['properties']['preferredLink'] = "false"
-      linkCollection['Features'].append(thisLink)
+      linkCollection['features'].append(thisLink)
 
       jsonDict = {
         "drone": droneData,
@@ -322,6 +322,7 @@ def calculateWeightsGeoJSON(droneData, towers, stations):
     weighted_params = [a * b for a, b in zip(weights, param_norm)]
     total_weight = sum(weighted_params)
     this_link['properties'] = {}
+    this_link['properties']['classification'] = "networkPath"
     this_link['properties']['name'] = "drone_" + tower['properties']['name'] + "_link"
     this_link['properties']['weight'] = total_weight
     this_link['properties']['rtt'] = param_norm[0]
