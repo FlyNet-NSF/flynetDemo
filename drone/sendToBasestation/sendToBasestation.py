@@ -134,7 +134,7 @@ def generateCellTowers(location, existing = []):
 
       longitude = new_tower.longitude
       latitude = new_tower.latitude
-      key = "ct_" + str(longitude) + "_" + str(latitude)
+      key = "ct_" + str(round(longitude,4)) + "_" + str(round(latitude,4))
       this_feature = {}
       this_feature['type'] = "Feature"
       this_feature['geometry'] = {}
@@ -168,7 +168,7 @@ def generateCellTowers(location, existing = []):
 
       longitude = new_tower.longitude
       latitude = new_tower.latitude
-      key = "ct_" + str(longitude) + "_" + str(latitude)
+      key = "ct_" + str(round(longitude,4)) + "_" + str(round(latitude,4))
       this_feature = {}
       this_feature['type'] = "Feature"
       this_feature['geometry'] = {}
