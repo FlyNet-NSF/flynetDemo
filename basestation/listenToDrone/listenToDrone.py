@@ -197,7 +197,7 @@ def main(args):
           thisLink['properties']['preferredLink'] = "true"
         else:
           thisLink['properties']['preferredLink'] = "false"
-      linkCollection['features'].append(thisLink)
+        linkCollection['features'].append(thisLink)
 
       jsonDict = {
         "drone": droneData,
