@@ -39,7 +39,8 @@ def main(args):
   endLon = -97.3
   currentTuple = [currentLon, currentLat, currentAlt]
   endTuple = [endLon, endLat, currentAlt]
-  currentBattery = random.randint(50, 100)
+  #currentBattery = random.randint(50, 100)
+  currentBattery = 100
   endless = 0
 
   drone_flights = [] #in case we want more than one
@@ -55,7 +56,7 @@ def main(args):
   droneData['properties']['userProperties']["cost"] = "cost estimate pending"
 
   flight_analysis = Geodesic.WGS84.Inverse(currentLat, currentLon, prevLat, prevLon)
-  drone_heading = flight_analysis['azi1']
+  flight_bearing = flight_analysis['azi1']
   flight_distance = flight_analysis['s12']
   droneData['properties']['userProperties']["distance"] = flight_distance
   droneData['properties']['userProperties']["flightType"] = 4 #speed
@@ -72,15 +73,16 @@ def main(args):
   droneData['properties']['dynamicProperties']['location'] = {}
   droneData['properties']['dynamicProperties']['location']['type'] = "Point"
   droneData['properties']['dynamicProperties']['location']['coordinates'] = []
-  droneData['properties']['dynamicProperties']['location']['coordinates'][0] = currentLon
-  droneData['properties']['dynamicProperties']['location']['coordinates'][1] = currentLat
+  droneData['properties']['dynamicProperties']['location']['coordinates'] = currentTuple
+  droneData['properties']['dynamicProperties']['bearing'] = flight_bearing
+  droneData['properties']['dynamicProperties']['archivedUpdates'] = []
   droneData['geometry'] = {}
   droneData['geometry']['type'] = "LineString"
   droneData['geometry']['coordinates'] = []
   droneData['geometry']['coordinates'].append(currentTuple)
   droneData['geometry']['coordinates'].append(endTuple)
   
-  while currentBattery > 10:
+  while currentBattery > 30:
 
     # update drone data
     droneData['properties']['userProperties']['batterylife'] = currentBattery
@@ -88,18 +90,25 @@ def main(args):
     # move drone
     prevLat = currentLat
     prevLon = currentLon
-
+    prevFeat = {}
+    prevFeat['type'] = "Feature"
+    prevFeat['geometry'] = {}
+    prevFeat['geometry']['type'] = "Point"
+    prevFeat['geometry']['coordinates'] = []
+    prevFeat['geometry']['coordinates'][0] = prevLon
+    prevFeat['geometry']['coordinates'][1] = prevLat
+    droneData['properties']['dynamicProperties']['archivedUpdates'].append(prevFeat)
+    
     currentLat = currentLat + .01
     currentLon = currentLon - .01
     currentTuple = [currentLon, currentLat, currentAlt]
-    droneData['geometry']['coordinates'].append(currentTuple)
-    # calculate heading
-    drone_change = Geodesic.WGS84.Inverse(currentLat, currentLon, prevLat, prevLon)
-    drone_heading = drone_change['azi1']
+    droneData['properties']['dynamicProperties']['location']['coordinates'] = currentTuple
 
-    droneData['properties']['userProperties']['heading'] = drone_heading
+    flight_analysis = Geodesic.WGS84.Inverse(currentLat, currentLon, prevLat, prevLon)
+    flight_bearing = flight_analysis['azi1']
+    droneData['properties']['dynamicProperties']['bearing'] = flight_bearing
 
-    drone_point = Point(prevLat, prevLon, currentAlt)
+    drone_point = Point(currenLat, currentLon, currentAlt)
 
     cell_towers = generateCellTowers(drone_point, cell_towers)  # regenerate cell towers
     
@@ -110,7 +119,8 @@ def main(args):
       tower['properties']['rtt'] = rtt
 
       if 'bw' not in tower:
-        bw = round(random.random() * 35)  # in mb/s
+        #bw = round(random.random() * 35)  # in mb/s
+        bw = random.randint(1, 8) #in mbps... Maybe representative of typical 4G cell network
         tower['properties']['bandwidth'] = bw
 
     droneData['properties']['userProperties']['celltowers']['features'] = cell_towers
