@@ -55,7 +55,7 @@ def main(args):
   droneData['properties']['userProperties'] = {}
   droneData['properties']['userProperties']["cost"] = "cost estimate pending"
 
-  flight_analysis = Geodesic.WGS84.Inverse(currentLat, currentLon, prevLat, prevLon)
+  flight_analysis = Geodesic.WGS84.Inverse(endLat, endLon, currentLat, currentLon)
   flight_bearing = flight_analysis['azi1']
   flight_distance = flight_analysis['s12']
   droneData['properties']['userProperties']["distance"] = flight_distance
@@ -95,8 +95,8 @@ def main(args):
     prevFeat['geometry'] = {}
     prevFeat['geometry']['type'] = "Point"
     prevFeat['geometry']['coordinates'] = []
-    prevFeat['geometry']['coordinates'][0] = prevLon
-    prevFeat['geometry']['coordinates'][1] = prevLat
+    prevFeat['geometry']['coordinates'].append(prevLon)
+    prevFeat['geometry']['coordinates'].append(prevLat)
     droneData['properties']['dynamicProperties']['archivedUpdates'].append(prevFeat)
     
     currentLat = currentLat + .01
@@ -108,7 +108,7 @@ def main(args):
     flight_bearing = flight_analysis['azi1']
     droneData['properties']['dynamicProperties']['bearing'] = flight_bearing
 
-    drone_point = Point(currenLat, currentLon, currentAlt)
+    drone_point = Point(currentLat, currentLon, currentAlt)
 
     cell_towers = generateCellTowers(drone_point, cell_towers)  # regenerate cell towers
     
