@@ -307,7 +307,7 @@ def calculateWeightsGeoJSON(droneData, towers, stations):
       this_link['properties']['weight'] = total_weight
       this_link['properties']['rtt'] = param_norm[0]
       this_link['properties']['bandwidth'] = param_norm[1]
-      this_link['properties']['load'] = param_norm[2]
+      #this_link['properties']['load'] = param_norm[2]
       graphGeoJSON.append(this_link)
       
     this_link = {}
@@ -406,6 +406,8 @@ def generateGroundStations(location, existing = []):
       this_station['properties'] = {}
       this_station['properties']['classification'] = "groundstation"
       this_station['properties']['name'] = key
+      #generate some random load... 
+      this_station['properties']['load'] = random.randint(0, 100);
       this_station['geometry'] = {}
       this_station['geometry']['type'] = "Point"
       this_station['geometry']['coordinates'] = this_tuple 
