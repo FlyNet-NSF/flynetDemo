@@ -47,7 +47,8 @@ def main(args):
     drones = json.loads(body)
     print(" [x] Received %s" % drones)
     for droneData in drones['features']:
-      droneLL = (droneData['geometry']['coordinates'][-1][0], droneData['geometry']['coordinates'][-1][1])
+      droneLL = (droneData['properties']['dynamicProperties']['location']['coordinates'][0], droneData['properties']['dynamicProperties']['location']['coordinates'][1])
+    
       droneBatteryLife = droneData['properties']['userProperties']['batterylife']
 
       nonlocal ground_stations
@@ -315,7 +316,7 @@ def calculateWeightsGeoJSON(droneData, towers, stations):
     this_link['geometry'] = {}
     this_link['geometry']['type'] = "LineString"
     this_link['geometry']['coordinates'] = []
-    this_link['geometry']['coordinates'].append(droneData['geometry']['coordinates'][-1])
+    this_link['geometry']['coordinates'].append(droneData['properties']['dynamicProperties']['location']['coordinates'])
     this_link['geometry']['coordinates'].append(this_tower_ll)
     parameters = [tower['properties']['rtt'], tower['properties']['bandwidth'], 0]
     param_norm = normalize(parameters)
