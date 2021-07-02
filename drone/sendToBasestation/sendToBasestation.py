@@ -35,11 +35,15 @@ def main(args):
   currentLat = 32.2
   currentLon = -96.5
   currentAlt = 500  # ft
+  endLat = 33.0
+  endLon = -97.3
   currentTuple = [currentLon, currentLat, currentAlt]
+  endTuple = [endLon, endLat, currentAlt]
   currentBattery = random.randint(50, 100)
   endless = 0
 
   drone_flights = [] #in case we want more than one
+  archived_updates = []
   cell_towers = []
   
   droneData = {}
@@ -48,14 +52,34 @@ def main(args):
   droneData['properties']['eventName'] = "FlyNetDemo"
   droneData['properties']['classification'] = "proposedFlight"
   droneData['properties']['userProperties'] = {}
+  droneData['properties']['userProperties']["cost"] = "cost estimate pending"
+
+  flight_analysis = Geodesic.WGS84.Inverse(currentLat, currentLon, prevLat, prevLon)
+  drone_heading = flight_analysis['azi1']
+  flight_distance = flight_analysis['s12']
+  droneData['properties']['userProperties']["distance"] = flight_distance
+  droneData['properties']['userProperties']["flightType"] = 4 #speed
+  
+  droneData['properties']['userProperties']['vehicle'] = {}
+  this_vehicle = getVehicleData(1);
+  droneData['properties']['userProperties']['vehicle'] = this_vehicle
+  
   droneData['properties']['userProperties']['celltowers'] = {}
   droneData['properties']['userProperties']['celltowers']['type'] = "FeatureCollection"
   droneData['properties']['userProperties']['celltowers']['features']= []
+  droneData['properties']['dynamicProperties'] = {}
+  droneData['properties']['dynamicProperties']['altitude'] = 500
+  droneData['properties']['dynamicProperties']['location'] = {}
+  droneData['properties']['dynamicProperties']['location']['type'] = "Point"
+  droneData['properties']['dynamicProperties']['location']['coordinates'] = []
+  droneData['properties']['dynamicProperties']['location']['coordinates'][0] = currentLon
+  droneData['properties']['dynamicProperties']['location']['coordinates'][1] = currentLat
   droneData['geometry'] = {}
   droneData['geometry']['type'] = "LineString"
   droneData['geometry']['coordinates'] = []
   droneData['geometry']['coordinates'].append(currentTuple)
-
+  droneData['geometry']['coordinates'].append(endTuple)
+  
   while currentBattery > 10:
 
     # update drone data
@@ -181,6 +205,45 @@ def generateCellTowers(location, existing = []):
       this_feature['properties']['network'] = random.choice(networks)
       out.append(this_feature)
   return out
+
+def getVehicleData(vehicleType):
+  thisVehicle = {}
+  if vehicleType == 1:
+    #FreeFly Alta drone... a surveillance drone
+    thisVehicle['weather_tolerances'] = {}
+    thisVehicle['weather_tolerances']['max_temperature'] = 45 #deg C                                                
+    thisVehicle['weather_tolerances']['min_temperature'] = -20 #deg C                                               
+    thisVehicle['weather_tolerances']['wind_tolerance']  = 13 #m/s ~= 25 kts                                        
+    thisVehicle['weather_tolerances']['precip_tolerance'] = 0 #normally units should be mm/hr                       
+    thisVehicle['vehicle_description'] = "Surveillance Drone"
+    thisVehicle['vehicle_model'] = "Freefly Alta Pro"
+    thisVehicle['vehicle_type'] = "multirotor"
+    thisVehicle['propulsion'] = {}
+    thisVehicle['propulsion']['num_props'] = 8
+    thisVehicle['propulsion']['piloted'] = 0
+    thisVehicle['propulsion']['can_hover'] = 1
+    thisVehicle['propulsion']['horizontal_velocity'] = 15 #units m/s                                                
+    thisVehicle['power'] = {}
+    thisVehicle['power']['battery_mass'] = 0.515 #units kg                                                          
+    thisVehicle['power']['primary_power_source'] = "battery"
+    thisVehicle['power']['battery_voltage'] = 22.8
+    thisVehicle['power']['battery_type'] = "lithium"
+    thisVehicle['power']['battery_mAh'] = 4280
+    thisVehicle['power']['number_of_batteries'] = 1
+    thisVehicle['power']['battery_energy'] = 97.58
+    thisVehicle['vehicle_cost'] = 10000 # in USD                                                                    
+    thisVehicle['limits'] = {}
+    thisVehicle['limits']['max_payload_mass'] = 9.07 #kg                                                            
+    thisVehicle['limits']['max_noise'] = 60
+    thisVehicle['limits']['max_range'] = 45 #km
+    thisVehicle['limits']['max_airspeed'] = 20 #m/s                                                                 
+    thisVehicle['dimensions'] = {}
+    thisVehicle['dimensions']['drag_coefficient'] = 0.54
+    thisVehicle['dimensions']['front_surface'] = 1 #m^3                                                             
+    thisVehicle['dimensions']['vehicle_mass'] = 6.17 #kg                                                            
+    thisVehicle['dimensions']['width'] = 1.325 #m
+
+  return thisVehicle
 
 def handleArguments(properties):
   parser = ArgumentParser()
