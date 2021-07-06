@@ -55,7 +55,7 @@ def main(args):
   droneData['properties']['userProperties'] = {}
   droneData['properties']['userProperties']["cost"] = "cost estimate pending"
 
-  flight_analysis = Geodesic.WGS84.Inverse(endLat, endLon, currentLat, currentLon)
+  flight_analysis = Geodesic.WGS84.Inverse(currentLat, currentLon, endLat, endLon)
   flight_bearing = flight_analysis['azi1']
   flight_distance = flight_analysis['s12']
   droneData['properties']['userProperties']["distance"] = flight_distance
