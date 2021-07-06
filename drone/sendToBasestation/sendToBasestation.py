@@ -32,11 +32,11 @@ def main(args):
   basechannel = baseconnection.channel()
   basechannel.queue_declare(queue=args.basestation_queue, durable=True)
 
-  currentLat = 32.2
-  currentLon = -96.5
+  currentLat = 32.6
+  currentLon = -96.8
   currentAlt = 500  # ft
   endLat = 33.0
-  endLon = -97.3
+  endLon = -97.4
   currentTuple = [currentLon, currentLat, currentAlt]
   endTuple = [endLon, endLat, currentAlt]
   #currentBattery = random.randint(50, 100)
@@ -82,7 +82,7 @@ def main(args):
   droneData['geometry']['coordinates'].append(currentTuple)
   droneData['geometry']['coordinates'].append(endTuple)
   
-  while currentBattery > 30:
+  while currentBattery > 60:
 
     # update drone data
     droneData['properties']['userProperties']['batterylife'] = currentBattery
@@ -103,8 +103,8 @@ def main(args):
     currentLon = currentLon - .01
     currentTuple = [currentLon, currentLat, currentAlt]
     droneData['properties']['dynamicProperties']['location']['coordinates'] = currentTuple
-
-    flight_analysis = Geodesic.WGS84.Inverse(currentLat, currentLon, prevLat, prevLon)
+    droneData['geometry'][['coordinates'][0] = currentTuple
+    flight_analysis = Geodesic.WGS84.Inverse(prevLat, prevLon, currentLat, currentLon)
     flight_bearing = flight_analysis['azi1']
     droneData['properties']['dynamicProperties']['bearing'] = flight_bearing
 
@@ -133,7 +133,7 @@ def main(args):
     drones['features'] = drone_flights
     
     # battery simulation
-    currentBattery = currentBattery - 0.1
+    currentBattery = currentBattery - 1
 
     #print(droneData)
     #droneMessage = str(droneData, 'utf-8')
