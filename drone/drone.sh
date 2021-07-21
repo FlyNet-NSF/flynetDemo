@@ -29,7 +29,7 @@ make altinstall
 
 /bin/su - drone -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/ffmpeg.simg"
 /bin/su - drone -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/drone/video_data.tar; /bin/tar -xf video_data.tar"
-/bin/mv /root/flynetDemo/drone/* /home/drone
+cp -r /root/flynetDemo/drone/* /home/drone
 chown -R drone /home/drone
 chgrp -R drone /home/drone
 reboot
