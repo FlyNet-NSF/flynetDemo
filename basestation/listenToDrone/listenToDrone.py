@@ -56,6 +56,7 @@ def main(args):
       droneBatteryLife = droneData['properties']['userProperties']['batterylife']
 
       nonlocal ground_stations
+      ground_stations = modulateGroundStationsLoad(25, ground_stations) #the integer represents maximum change in load from timeframe to timeframe
       ground_stations = generateGroundStations(droneLL, ground_stations)
       
       towers = droneData['properties']['userProperties']['celltowers']['features']
@@ -243,8 +244,8 @@ def normalize(parameters):
 
   rtt = rtt / 1000  # RTT
   bw = bw / 1000  # BW
-  load = load / 100  # Load
-
+  #load = load / 100  # Load
+  load = (100-load) / 100 #Load... because high numbers are bad, we invert it in the normalization as a precursor to applying the weights... 
   return [rtt, bw, load]
 
 def calculateWeights(towers, stations):
@@ -260,7 +261,7 @@ def calculateWeights(towers, stations):
       tower_to_gs_distance = tower_to_gs['s12']
       rtt = tower_to_gs_distance / 1000 + random.randint(0,5)  # calculate RTT with some randomness
       bw = random.random() * 1000  # up to 1000mb link bandwidth
-      load = random.randint(0, 100);  # GS load (fixed value for now)
+      load = station['properties']['load'] 
 
       parameters = [rtt, bw, load]
       param_norm = normalize(parameters)
@@ -304,7 +305,8 @@ def calculateWeightsGeoJSON(droneData, towers, stations):
       tower_to_gs_distance = tower_to_gs['s12']
       rtt = tower_to_gs_distance / 1000  # calculate RTT with some randomness                                                                             
       bw = random.random() * 1000  # up to 1000mb link bandwidth                                                                                          
-      load = 20  # GS load (fixed value for now)                                                                                                          
+      load = station['properties']['load']
+
       parameters = [rtt, bw, load]
       param_norm = normalize(parameters)
       weighted_params = [a * b for a, b in zip(weights, param_norm)]
@@ -419,6 +421,15 @@ def generateGroundStations(location, existing = []):
       this_station['geometry']['coordinates'] = this_tuple 
       out.append(this_station)
   return out
+
+def modulateGroundStationsLoad(maxChange, existing = []):
+  for station in existing:
+    station['properties']['load'] = station['properties']['load'] + random.randint(maxChange*-1, maxChange)
+    if station['properties']['load'] > 100:
+      station['properties']['load'] = 100
+    elif station['properties']['load'] < 0:
+      station['properties']['load'] = 0
+  return existing
 
 def getWorkerInfo():
   #available worker IP addresses can be found in /etc/hosts, and possibly modulated by an independent process
