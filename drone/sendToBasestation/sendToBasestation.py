@@ -36,7 +36,7 @@ def main(args):
   currentLon = -96.8
   currentAlt = 500  # ft
   endLat = 33.0
-  endLon = -97.4
+  endLon = -97.2
   currentTuple = [currentLon, currentLat, currentAlt]
   endTuple = [endLon, endLat, currentAlt]
   #currentBattery = random.randint(50, 100)
@@ -103,7 +103,7 @@ def main(args):
     currentLon = currentLon - .01
     currentTuple = [currentLon, currentLat, currentAlt]
     droneData['properties']['dynamicProperties']['location']['coordinates'] = currentTuple
-    droneData['geometry'][['coordinates'][0] = currentTuple
+    droneData['geometry']['coordinates'][0] = currentTuple
     flight_analysis = Geodesic.WGS84.Inverse(prevLat, prevLon, currentLat, currentLon)
     flight_bearing = flight_analysis['azi1']
     droneData['properties']['dynamicProperties']['bearing'] = flight_bearing
