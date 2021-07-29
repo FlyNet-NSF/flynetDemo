@@ -40,9 +40,13 @@ def main(args):
 
   ground_stations = []
   #drone_flights = []
+  update_no = 0
   
   def callback(ch, method, properties, body):
     #nonlocal drone_flights
+    nonlocal update_no
+    update_no = update_no + 1
+    
     drone_flights = []
     drones = json.loads(body)
     print(" [x] Received %s" % drones)
@@ -210,18 +214,19 @@ def main(args):
       droneData['properties']['userProperties']['groundstations'] = groundstationCollection
       droneData['properties']['userProperties']['networklinks'] = linkCollection
       drone_flights.append(droneData)
-
+      
     drones = {}
     drones['type'] = "FeatureCollection"
     drones['features'] = drone_flights
     
-    if args.state is not None:
+    if args.directory is not None:
         # save to state
-        stateFile = args.state
-      
+        state_directory = args.directory
+        state_file_name = "flynet_%02d.geojson" % (update_no,)
+        state_file = state_directory + "/" + state_file_name
         #json_dump = json.dumps(jsonDict)
         json_dump = json.dumps(drones)
-        with open(stateFile, "w") as file: # Use file to refer to the file object
+        with open(state_file, "w") as file: # Use file to refer to the file object
           data = file.write(json_dump)
 
   basechannel.basic_consume(queue=args.basestation_queue,
@@ -253,9 +258,9 @@ def calculateWeights(towers, stations):
       # SIMULATION (weight calculation)
       tower_to_gs = Geodesic.WGS84.Inverse(tower['geometry']['coordinates'][1], tower['geometry']['coordinates'][0], station['geometry']['coordinates'][1], station['geometry']['coordinates'][0])
       tower_to_gs_distance = tower_to_gs['s12']
-      rtt = tower_to_gs_distance / 1000  # calculate RTT with some randomness
+      rtt = tower_to_gs_distance / 1000 + random.randint(0,5)  # calculate RTT with some randomness
       bw = random.random() * 1000  # up to 1000mb link bandwidth
-      load = 20  # GS load (fixed value for now)
+      load = random.randint(0, 100);  # GS load (fixed value for now)
 
       parameters = [rtt, bw, load]
       param_norm = normalize(parameters)
@@ -481,7 +486,7 @@ def handleArguments(properties):
                           type=str, help="The drone RabbitMQ exchange name.  Default is in the config file.")
   parser.add_argument("-n", "--noisy", dest="noisy", action='store_true',
                       help="Enable noisy output.")
-  parser.add_argument("-s", "--state", dest="state", default=properties['state_file'], help="File path to state json")
+  parser.add_argument("-z", "--directory", dest="directory", default=properties['directory'], help="directory path for json output")
   return parser.parse_args()
 
 def daemonize():
