@@ -46,6 +46,7 @@ def main(args):
   drone_flights = [] #in case we want more than one
   archived_updates = []
   cell_towers = []
+  ground_stations = []
   
   droneData = {}
   droneData['type'] = "Feature"
@@ -68,6 +69,9 @@ def main(args):
   droneData['properties']['userProperties']['celltowers'] = {}
   droneData['properties']['userProperties']['celltowers']['type'] = "FeatureCollection"
   droneData['properties']['userProperties']['celltowers']['features']= []
+  droneData['properties']['userProperties']['groundstations'] = {}
+  droneData['properties']['userProperties']['groundstations']['type'] = "FeatureCollection"
+  droneData['properties']['userProperties']['groundstations']['features']= []
   droneData['properties']['dynamicProperties'] = {}
   droneData['properties']['dynamicProperties']['altitude'] = 500
   droneData['properties']['dynamicProperties']['location'] = {}
@@ -111,19 +115,30 @@ def main(args):
     drone_point = Point(currentLat, currentLon, currentAlt)
 
     cell_towers = generateCellTowers(drone_point, cell_towers)  # regenerate cell towers
+
+    ground_stations = modulateGroundStationsLoad(25, ground_stations) #the integer represents maximum change in load from timeframe to timeframe
+    ground_stations = generateGroundStations(drone_point, ground_stations) #regenerate ground stations
     
     for tower in cell_towers:
       towerDistanceCalc = Geodesic.WGS84.Inverse(currentLat, currentLon, tower['geometry']['coordinates'][1], tower['geometry']['coordinates'][0])
       towerDistance = towerDistanceCalc['s12']
-      rtt = towerDistance / 1000  # calculate RTT with some randomness (factor of distance)
-      tower['properties']['rtt'] = rtt
+      signal = 50 + (int(towerDistance / 1000) * 5) + random.randint(0,10) # calculate signal with some randomness (function of distance)... should max out around 110dB
+      tower['properties']['signal'] = signal
 
       if 'bw' not in tower:
-        #bw = round(random.random() * 35)  # in mb/s
-        bw = random.randint(1, 8) #in mbps... Maybe representative of typical 4G cell network
+        bw = 10 * ((50/signal) * (50/signal)) #if signal is maxed out at 50dB this should yield 10mbps, falling off exponentially
         tower['properties']['bandwidth'] = bw
 
     droneData['properties']['userProperties']['celltowers']['features'] = cell_towers
+
+    for station in ground_stations:
+      stationDistanceCalc = Geodesic.WGS84.Inverse(currentLat, currentLon, station['geometry']['coordinates'][1], station['geometry']['coordinates'][0])
+      stationDistance = stationDistanceCalc['s12']
+      rtt = int(stationDistance / 3000) + random.randint(0,5)  # calculate RTT with some randomness (factor of distance)
+      station['properties']['rtt'] = rtt
+
+    droneData['properties']['userProperties']['groundstations']['features'] = ground_stations
+
     drone_flights = [] #clear out the list of flights for now... ideally we'd just update a flight already existing in the list
     drone_flights.append(droneData)
 
@@ -187,7 +202,6 @@ def generateCellTowers(location, existing = []):
       tower_lat = tower['geometry']['coordinates'][1]
 
       drone_tower_distance = Geodesic.WGS84.Inverse(location.latitude, location.longitude, tower_lat, tower_lon)['s12']  # calculate distance
-
       if drone_tower_distance > distance_limit:
         existing.remove(tower)
 
@@ -215,6 +229,49 @@ def generateCellTowers(location, existing = []):
       this_feature['properties']['network'] = random.choice(networks)
       out.append(this_feature)
   return out
+
+def generateGroundStations(location, existing = []):
+  count = 2
+  distance_limit = 10000 #10 km
+
+  # remove out of range stations                                                                                                                                           
+  for station in existing:
+    drone_station_distance = Geodesic.WGS84.Inverse(location.latitude, location.longitude, station['geometry']['coordinates'][1], station['geometry']['coordinates'][0])['s12']
+    if drone_station_distance > distance_limit:
+      existing.remove(station)
+
+  # add stations if needed                                                                                                                                                 
+  out = existing
+  if len(existing) < count:
+    for i in range(count - len(existing)):
+      rand_distance = distance_limit - random.randint(int(distance_limit/1.1),distance_limit)
+      rel_bearing = random.random() * 180 - 90  # calculate a random relative heading between -90 and 90 degrees from the drone
+      new_station_dist = distance(kilometers=rand_distance / 1000)
+      new_station = new_station_dist.destination(location, rel_bearing)
+      longitude = new_station.longitude
+      latitude = new_station.latitude
+      this_tuple = [longitude, latitude, 0]
+      key = "gs_" + str(round(longitude,4)) + "_" + str(round(latitude,4))
+      this_station = {}
+      this_station['type'] = "Feature"
+      this_station['geometry'] = {}
+      this_station['geometry']['type'] = "Point"
+      this_station['geometry']['coordinates'] = this_tuple
+      this_station['properties'] = {}
+      this_station['properties']['classification'] = "groundstation"
+      this_station['properties']['name'] = key
+      this_station['properties']['load'] = random.randint(0, 100);
+      out.append(this_station)
+  return out
+
+def modulateGroundStationsLoad(maxChange, existing = []):
+  for station in existing:
+    station['properties']['load'] = station['properties']['load'] + random.randint(maxChange*-1, maxChange)
+    if station['properties']['load'] > 100:
+      station['properties']['load'] = 100
+    elif station['properties']['load'] < 0:
+      station['properties']['load'] = 0
+  return existing
 
 def getVehicleData(vehicleType):
   thisVehicle = {}
