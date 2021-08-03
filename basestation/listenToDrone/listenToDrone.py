@@ -11,6 +11,7 @@ import configparser
 import random 
 import time
 import socket
+import iperf3
 from datetime import datetime
 from argparse import ArgumentParser
 from os import path
@@ -38,7 +39,7 @@ def main(args):
   dronechannel = droneconnection.channel()
   dronechannel.queue_declare(queue=args.drone_queue, durable=True)
 
-  ground_stations = []
+  #ground_stations = []
   #drone_flights = []
   update_no = 0
   
@@ -55,11 +56,12 @@ def main(args):
     
       droneBatteryLife = droneData['properties']['userProperties']['batterylife']
 
-      nonlocal ground_stations
-      ground_stations = modulateGroundStationsLoad(25, ground_stations) #the integer represents maximum change in load from timeframe to timeframe
-      ground_stations = generateGroundStations(droneLL, ground_stations)
+      #nonlocal ground_stations
+      #ground_stations = modulateGroundStationsLoad(25, ground_stations) #the integer represents maximum change in load from timeframe to timeframe
+      #ground_stations = generateGroundStations(droneLL, ground_stations)
       
       towers = droneData['properties']['userProperties']['celltowers']['features']
+      ground_stations = droneData['properties']['userProperties']['groundstations']['features']
       graph = calculateWeights(towers, ground_stations)
       graphGeoJSON = calculateWeightsGeoJSON(droneData, towers, ground_stations)
       rtt, prevs = shortestPath(graph, "drone")
@@ -242,7 +244,7 @@ def normalize(parameters):
   bw = parameters[1]
   load = parameters[2]
 
-  rtt = rtt / 1000  # RTT
+  rtt = (100-rtt) / 1000  # RTT.... low numbers are better so invert...
   bw = bw / 1000  # BW
   #load = load / 100  # Load
   load = (100-load) / 100 #Load... because high numbers are bad, we invert it in the normalization as a precursor to applying the weights... 
@@ -259,8 +261,16 @@ def calculateWeights(towers, stations):
       # SIMULATION (weight calculation)
       tower_to_gs = Geodesic.WGS84.Inverse(tower['geometry']['coordinates'][1], tower['geometry']['coordinates'][0], station['geometry']['coordinates'][1], station['geometry']['coordinates'][0])
       tower_to_gs_distance = tower_to_gs['s12']
-      rtt = tower_to_gs_distance / 1000 + random.randint(0,5)  # calculate RTT with some randomness
-      bw = random.random() * 1000  # up to 1000mb link bandwidth
+      rtt = station['properties']['rtt']
+      #bw = random.random() * 1000  # up to 1000mb link bandwidth
+      client = iperf3.Client()
+      client.server_hostname = '192.5.86.166'
+      client.port = 5201
+      client.duration = 1
+      client.json_output = True
+      result = client.run()
+      bw = result.sent_Mbps
+      del client
       load = station['properties']['load'] 
 
       parameters = [rtt, bw, load]
@@ -303,9 +313,17 @@ def calculateWeightsGeoJSON(droneData, towers, stations):
       this_link['properties']['name'] = tower['properties']['name'] + "_" + station['properties']['name'] + "_link" 
       tower_to_gs = Geodesic.WGS84.Inverse(tower['geometry']['coordinates'][1], tower['geometry']['coordinates'][0], station['geometry']['coordinates'][1], station['geometry']['coordinates'][0])
       tower_to_gs_distance = tower_to_gs['s12']
-      rtt = tower_to_gs_distance / 1000  # calculate RTT with some randomness                                                                             
-      bw = random.random() * 1000  # up to 1000mb link bandwidth                                                                                          
+      #rtt = tower_to_gs_distance / 1000  # calculate RTT with some randomness                                                                             
+      rtt = station['properties']['rtt']
+      client = iperf3.Client()
+      client.server_hostname = '192.5.86.166' #change me... ideally read out of worker public.json file
+      client.port = 5201
+      client.duration = 1
+      client.json_output = True
+      result = client.run()
+      bw = result.sent_Mbps
       load = station['properties']['load']
+      #bw = random.random() * 1000  # up to 1000mb link bandwidth 
 
       parameters = [rtt, bw, load]
       param_norm = normalize(parameters)
