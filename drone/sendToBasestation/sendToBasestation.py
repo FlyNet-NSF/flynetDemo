@@ -124,6 +124,8 @@ def main(args):
       towerDistance = towerDistanceCalc['s12']
       signal = 50 + (int(towerDistance / 1000) * 5) + random.randint(0,10) # calculate signal with some randomness (function of distance)... should max out around 110dB
       tower['properties']['signal'] = signal
+      rtt = int(towerDistance / 3000) + random.randint(0,5)  # calculate RTT with some randomness (factor of distance)
+      tower['properties']['rtt'] = rtt
 
       if 'bw' not in tower:
         bw = 10 * ((50/signal) * (50/signal)) #if signal is maxed out at 50dB this should yield 10mbps, falling off exponentially
