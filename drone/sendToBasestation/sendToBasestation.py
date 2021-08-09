@@ -48,6 +48,7 @@ def main(args):
   cell_towers = []
   ground_stations = []
   
+  
   droneData = {}
   droneData['type'] = "Feature"
   droneData['properties'] = {}
@@ -260,6 +261,7 @@ def generateGroundStations(location, existing = []):
       this_station['geometry']['type'] = "Point"
       this_station['geometry']['coordinates'] = this_tuple
       this_station['properties'] = {}
+      this_station['properties']['ipaddress'] = assignIPAddr(existing)
       this_station['properties']['classification'] = "groundstation"
       this_station['properties']['name'] = key
       this_station['properties']['load'] = random.randint(0, 100);
@@ -275,6 +277,23 @@ def modulateGroundStationsLoad(maxChange, existing = []):
       station['properties']['load'] = 0
   return existing
 
+def assignIPAddr(existing):
+  eligibleIPs = []
+  usedIPs = []
+  for gstation in existing:
+    usedIPs.append(gstation['properties']['ipaddress'])
+    
+  ipAddrFile = "/var/lib/hostkey/public.json" #maybe move to args... main or local
+  ipF = open(ipAddrFile, "r") # Use file to refer to the file object                                                                                                       
+  ipdict = json.load(ipF)
+  ipkeys = ipdict.keys()
+  for key in ipkeys:
+    if "worker" in key:
+      if ipdict[key] not in usedIPs:
+        eligibleIPs.append(ipdict[key])
+  ipAddr = random.choice(eligibleIPs)
+  return ipAddr
+  
 def getVehicleData(vehicleType):
   thisVehicle = {}
   if vehicleType == 1:
