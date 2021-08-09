@@ -32,71 +32,140 @@ def main(args):
   basechannel = baseconnection.channel()
   basechannel.queue_declare(queue=args.basestation_queue, durable=True)
 
-  currentLat = 32.0
-  currentLon = -96.0
+  currentLat = 32.6
+  currentLon = -96.8
   currentAlt = 500  # ft
-
-  currentBattery = random.randint(50, 100)
+  endLat = 33.0
+  endLon = -97.2
+  currentTuple = [currentLon, currentLat, currentAlt]
+  endTuple = [endLon, endLat, currentAlt]
+  #currentBattery = random.randint(50, 100)
+  currentBattery = 100
   endless = 0
 
-  cell_towers = {}
+  drone_flights = [] #in case we want more than one
+  archived_updates = []
+  cell_towers = []
+  ground_stations = []
+  
+  
+  droneData = {}
+  droneData['type'] = "Feature"
+  droneData['properties'] = {}
+  droneData['properties']['eventName'] = "FlyNetDemo"
+  droneData['properties']['classification'] = "proposedFlight"
+  droneData['properties']['userProperties'] = {}
+  droneData['properties']['userProperties']["cost"] = "cost estimate pending"
 
-  while currentBattery > 10:
-    droneData = {}
+  flight_analysis = Geodesic.WGS84.Inverse(currentLat, currentLon, endLat, endLon)
+  flight_bearing = flight_analysis['azi1']
+  flight_distance = flight_analysis['s12']
+  droneData['properties']['userProperties']["distance"] = flight_distance
+  droneData['properties']['userProperties']["flightType"] = 4 #speed
+  
+  droneData['properties']['userProperties']['vehicle'] = {}
+  this_vehicle = getVehicleData(1);
+  droneData['properties']['userProperties']['vehicle'] = this_vehicle
+  
+  droneData['properties']['userProperties']['celltowers'] = {}
+  droneData['properties']['userProperties']['celltowers']['type'] = "FeatureCollection"
+  droneData['properties']['userProperties']['celltowers']['features']= []
+  droneData['properties']['userProperties']['groundstations'] = {}
+  droneData['properties']['userProperties']['groundstations']['type'] = "FeatureCollection"
+  droneData['properties']['userProperties']['groundstations']['features']= []
+  droneData['properties']['dynamicProperties'] = {}
+  droneData['properties']['dynamicProperties']['altitude'] = 500
+  droneData['properties']['dynamicProperties']['location'] = {}
+  droneData['properties']['dynamicProperties']['location']['type'] = "Point"
+  droneData['properties']['dynamicProperties']['location']['coordinates'] = []
+  droneData['properties']['dynamicProperties']['location']['coordinates'] = currentTuple
+  droneData['properties']['dynamicProperties']['bearing'] = flight_bearing
+  droneData['properties']['dynamicProperties']['archivedUpdates'] = []
+  droneData['geometry'] = {}
+  droneData['geometry']['type'] = "LineString"
+  droneData['geometry']['coordinates'] = []
+  droneData['geometry']['coordinates'].append(currentTuple)
+  droneData['geometry']['coordinates'].append(endTuple)
+  
+  while currentBattery > 60:
 
     # update drone data
-    droneData['latitude'] = currentLat
-    droneData['longitude'] = currentLon
-    droneData['batterylife'] = currentBattery
+    droneData['properties']['userProperties']['batterylife'] = currentBattery
 
     # move drone
     prevLat = currentLat
     prevLon = currentLon
-
+    prevFeat = {}
+    prevFeat['type'] = "Feature"
+    prevFeat['geometry'] = {}
+    prevFeat['geometry']['type'] = "Point"
+    prevFeat['geometry']['coordinates'] = []
+    prevFeat['geometry']['coordinates'].append(prevLon)
+    prevFeat['geometry']['coordinates'].append(prevLat)
+    droneData['properties']['dynamicProperties']['archivedUpdates'].append(prevFeat)
+    
     currentLat = currentLat + .01
     currentLon = currentLon - .01
+    currentTuple = [currentLon, currentLat, currentAlt]
+    droneData['properties']['dynamicProperties']['location']['coordinates'] = currentTuple
+    droneData['geometry']['coordinates'][0] = currentTuple
+    flight_analysis = Geodesic.WGS84.Inverse(prevLat, prevLon, currentLat, currentLon)
+    flight_bearing = flight_analysis['azi1']
+    droneData['properties']['dynamicProperties']['bearing'] = flight_bearing
 
-    # calculate heading
-    drone_change = Geodesic.WGS84.Inverse(currentLat, currentLon, prevLat, prevLon)
-    drone_heading = drone_change['azi1']
+    drone_point = Point(currentLat, currentLon, currentAlt)
 
-    droneData['heading'] = drone_heading
+    cell_towers = generateCellTowers(drone_point, cell_towers)  # regenerate cell towers
 
-    drone_point = Point(prevLat, prevLon, currentAlt)
-
-    cell_towers = generateCellTowers(drone_point, drone_heading, cell_towers)  # regenerate cell towers
-
-    for id,tower in cell_towers.items():
-      towerDistanceCalc = Geodesic.WGS84.Inverse(currentLat, currentLon, tower['latitude'], tower['longitude'])
+    ground_stations = modulateGroundStationsLoad(25, ground_stations) #the integer represents maximum change in load from timeframe to timeframe
+    ground_stations = generateGroundStations(drone_point, ground_stations) #regenerate ground stations
+    
+    for tower in cell_towers:
+      towerDistanceCalc = Geodesic.WGS84.Inverse(currentLat, currentLon, tower['geometry']['coordinates'][1], tower['geometry']['coordinates'][0])
       towerDistance = towerDistanceCalc['s12']
-      rtt = towerDistance / 1000  # calculate RTT with some randomness (factor of distance)
-      tower['rtt'] = rtt
+      signal = 50 + (int(towerDistance / 1000) * 5) + random.randint(0,10) # calculate signal with some randomness (function of distance)... should max out around 110dB
+      tower['properties']['signal'] = signal
+      rtt = int(towerDistance / 3000) + random.randint(0,5)  # calculate RTT with some randomness (factor of distance)
+      tower['properties']['rtt'] = rtt
 
       if 'bw' not in tower:
-        bw = round(random.random() * 35)  # in mb/s
-        tower['bw'] = bw
+        bw = 10 * ((50/signal) * (50/signal)) #if signal is maxed out at 50dB this should yield 10mbps, falling off exponentially
+        tower['properties']['bandwidth'] = bw
 
-    droneData['celltowers'] = cell_towers
+    droneData['properties']['userProperties']['celltowers']['features'] = cell_towers
 
+    for station in ground_stations:
+      stationDistanceCalc = Geodesic.WGS84.Inverse(currentLat, currentLon, station['geometry']['coordinates'][1], station['geometry']['coordinates'][0])
+      stationDistance = stationDistanceCalc['s12']
+      rtt = int(stationDistance / 3000) + random.randint(0,5)  # calculate RTT with some randomness (factor of distance)
+      station['properties']['rtt'] = rtt
+
+    droneData['properties']['userProperties']['groundstations']['features'] = ground_stations
+
+    drone_flights = [] #clear out the list of flights for now... ideally we'd just update a flight already existing in the list
+    drone_flights.append(droneData)
+
+    drones = {}
+    drones['type'] = "FeatureCollection"
+    drones['features'] = []
+    drones['features'] = drone_flights
+    
     # battery simulation
-    currentBattery = currentBattery - 0.1
+    currentBattery = currentBattery - 1
 
     #print(droneData)
     #droneMessage = str(droneData, 'utf-8')
     #droneMessage = droneData
-    submitToBasestation(args, basechannel, droneData)
+    submitToBasestation(args, basechannel, drones)
 
     time.sleep(5)
   
   print("Flight is complete.  Exiting")
   sys.exit()
   
-def generateCellTowers(location, track, existing = {}):
+def generateCellTowers(location, existing = []):
   mincount = 4
   distance_limit = 10000  # meters from drone to cell tower
-  loc_lat = location.latitude
-  loc_long = location.longitude
-
   out = existing
 
   def getGenCount():
@@ -117,23 +186,28 @@ def generateCellTowers(location, track, existing = {}):
 
       longitude = new_tower.longitude
       latitude = new_tower.latitude
-      key = "ct_" + str(longitude) + "_" + str(latitude)
-      out[key] = {'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)}  # add in a new random ground station
+      key = "ct_" + str(round(longitude,4)) + "_" + str(round(latitude,4))
+      this_feature = {}
+      this_feature['type'] = "Feature"
+      this_feature['geometry'] = {}
+      this_feature['geometry']['type'] = "Point"
+      this_tuple = [longitude, latitude, 0]
+      this_feature['geometry']['coordinates'] = this_tuple
+      this_feature['properties'] = {}
+      this_feature['properties']['classification'] = "celltower"
+      this_feature['properties']['name'] = key
+      this_feature['properties']['network'] = random.choice(networks)
+      out.append(this_feature)
   else:
-    delList = []
     # remove out of range cell towers
-    for id,tower in existing.items():
-      tower_lon = tower['longitude']
-      tower_lat = tower['latitude']
+    for tower in existing:
+      tower_lon = tower['geometry']['coordinates'][0]
+      tower_lat = tower['geometry']['coordinates'][1]
 
       drone_tower_distance = Geodesic.WGS84.Inverse(location.latitude, location.longitude, tower_lat, tower_lon)['s12']  # calculate distance
-
       if drone_tower_distance > distance_limit:
-        delList.append(id)
+        existing.remove(tower)
 
-    
-    for id in delList:
-      del existing[id]
 
     # add stations if needed
     for i in range(getGenCount()):
@@ -145,9 +219,119 @@ def generateCellTowers(location, track, existing = {}):
 
       longitude = new_tower.longitude
       latitude = new_tower.latitude
-      out["ct_" + str(longitude) + "_" + str(latitude)] = {'longitude': longitude, 'latitude': latitude, 'network': random.choice(networks)}  # add in a new random ground station
-
+      key = "ct_" + str(round(longitude,4)) + "_" + str(round(latitude,4))
+      this_feature = {}
+      this_feature['type'] = "Feature"
+      this_feature['geometry'] = {}
+      this_feature['geometry']['type'] = "Point"
+      this_tuple = [longitude, latitude, 0]
+      this_feature['geometry']['coordinates'] = this_tuple
+      this_feature['properties'] = {}
+      this_feature['properties']['classification'] = "celltower"
+      this_feature['properties']['name'] = key
+      this_feature['properties']['network'] = random.choice(networks)
+      out.append(this_feature)
   return out
+
+def generateGroundStations(location, existing = []):
+  count = 2
+  distance_limit = 10000 #10 km
+
+  # remove out of range stations                                                                                                                                           
+  for station in existing:
+    drone_station_distance = Geodesic.WGS84.Inverse(location.latitude, location.longitude, station['geometry']['coordinates'][1], station['geometry']['coordinates'][0])['s12']
+    if drone_station_distance > distance_limit:
+      existing.remove(station)
+
+  # add stations if needed                                                                                                                                                 
+  out = existing
+  if len(existing) < count:
+    for i in range(count - len(existing)):
+      rand_distance = distance_limit - random.randint(int(distance_limit/1.1),distance_limit)
+      rel_bearing = random.random() * 180 - 90  # calculate a random relative heading between -90 and 90 degrees from the drone
+      new_station_dist = distance(kilometers=rand_distance / 1000)
+      new_station = new_station_dist.destination(location, rel_bearing)
+      longitude = new_station.longitude
+      latitude = new_station.latitude
+      this_tuple = [longitude, latitude, 0]
+      key = "gs_" + str(round(longitude,4)) + "_" + str(round(latitude,4))
+      this_station = {}
+      this_station['type'] = "Feature"
+      this_station['geometry'] = {}
+      this_station['geometry']['type'] = "Point"
+      this_station['geometry']['coordinates'] = this_tuple
+      this_station['properties'] = {}
+      this_station['properties']['ipaddress'] = assignIPAddr(existing)
+      this_station['properties']['classification'] = "groundstation"
+      this_station['properties']['name'] = key
+      this_station['properties']['load'] = random.randint(0, 100);
+      out.append(this_station)
+  return out
+
+def modulateGroundStationsLoad(maxChange, existing = []):
+  for station in existing:
+    station['properties']['load'] = station['properties']['load'] + random.randint(maxChange*-1, maxChange)
+    if station['properties']['load'] > 100:
+      station['properties']['load'] = 100
+    elif station['properties']['load'] < 0:
+      station['properties']['load'] = 0
+  return existing
+
+def assignIPAddr(existing):
+  eligibleIPs = []
+  usedIPs = []
+  for gstation in existing:
+    usedIPs.append(gstation['properties']['ipaddress'])
+    
+  ipAddrFile = "/var/lib/hostkey/public.json" #maybe move to args... main or local
+  ipF = open(ipAddrFile, "r") # Use file to refer to the file object                                                                                                       
+  ipdict = json.load(ipF)
+  ipkeys = ipdict.keys()
+  for key in ipkeys:
+    if "worker" in key:
+      if ipdict[key] not in usedIPs:
+        eligibleIPs.append(ipdict[key])
+  ipAddr = random.choice(eligibleIPs)
+  return ipAddr
+  
+def getVehicleData(vehicleType):
+  thisVehicle = {}
+  if vehicleType == 1:
+    #FreeFly Alta drone... a surveillance drone
+    thisVehicle['weather_tolerances'] = {}
+    thisVehicle['weather_tolerances']['max_temperature'] = 45 #deg C                                                
+    thisVehicle['weather_tolerances']['min_temperature'] = -20 #deg C                                               
+    thisVehicle['weather_tolerances']['wind_tolerance']  = 13 #m/s ~= 25 kts                                        
+    thisVehicle['weather_tolerances']['precip_tolerance'] = 0 #normally units should be mm/hr                       
+    thisVehicle['vehicle_description'] = "Surveillance Drone"
+    thisVehicle['vehicle_model'] = "Freefly Alta Pro"
+    thisVehicle['vehicle_type'] = "multirotor"
+    thisVehicle['propulsion'] = {}
+    thisVehicle['propulsion']['num_props'] = 8
+    thisVehicle['propulsion']['piloted'] = 0
+    thisVehicle['propulsion']['can_hover'] = 1
+    thisVehicle['propulsion']['horizontal_velocity'] = 15 #units m/s                                                
+    thisVehicle['power'] = {}
+    thisVehicle['power']['battery_mass'] = 0.515 #units kg                                                          
+    thisVehicle['power']['primary_power_source'] = "battery"
+    thisVehicle['power']['battery_voltage'] = 22.8
+    thisVehicle['power']['battery_type'] = "lithium"
+    thisVehicle['power']['battery_mAh'] = 4280
+    thisVehicle['power']['number_of_batteries'] = 1
+    thisVehicle['power']['battery_energy'] = 97.58
+    thisVehicle['vehicle_cost'] = 10000 # in USD                                                                    
+    thisVehicle['limits'] = {}
+    thisVehicle['limits']['max_payload_mass'] = 9.07 #kg                                                            
+    thisVehicle['limits']['max_noise'] = 60
+    thisVehicle['limits']['max_range'] = 45 #km
+    thisVehicle['limits']['max_airspeed'] = 20 #m/s                                                                 
+    thisVehicle['dimensions'] = {}
+    thisVehicle['dimensions']['drag_coefficient'] = 0.54
+    thisVehicle['dimensions']['front_surface'] = 1 #m^3                                                             
+    thisVehicle['dimensions']['vehicle_mass'] = 6.17 #kg                                                            
+    thisVehicle['dimensions']['width'] = 1.325 #m
+
+  return thisVehicle
 
 def handleArguments(properties):
   parser = ArgumentParser()

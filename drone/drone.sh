@@ -28,10 +28,10 @@ make altinstall
 /usr/local/bin/pip3.7 install opencv-python
 
 /bin/su - drone -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/ffmpeg.simg"
-/bin/su - drone -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/drone/video_client.py"
 /bin/su - drone -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/drone/video_data.tar; /bin/tar -xf video_data.tar"
-/bin/su - drone -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/drone/listenToBasestation.tar; /bin/tar -xf listenToBasestation.tar"
-/bin/su - drone -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/drone/sendToBasestation.tar; /bin/tar -xf sendToBasestation.tar"
+cp -r /root/flynetDemo/drone/* /home/drone
+chown -R drone /home/drone
+chgrp -R drone /home/drone
 reboot
 
 

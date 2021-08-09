@@ -26,6 +26,9 @@ python3.7 -m pip install --upgrade pip
 /usr/local/bin/pip3.7 install iperf3
 /bin/su - basestation -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/basestation/docker-compose.yml"
 /bin/su - basestation -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/basestation/rabbitmq.tar; /bin/tar -xf rabbitmq.tar"
+cp -r /root/flynetDemo/basestation/* /home/basestation
+chown -R basestation /home/basestation
+chgrp -R basestation /home/basestation
 /bin/su - basestation -c "/usr/local/bin/docker-compose up -d"
-/bin/su - basestation -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/basestation/listenToDrone.tar; /bin/tar -xf listenToDrone.tar"
+
 
