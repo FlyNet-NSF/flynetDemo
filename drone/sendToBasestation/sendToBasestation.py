@@ -224,6 +224,7 @@ def generateCellTowers(location, existing = []):
       this_feature['properties']['classification'] = "celltower"
       this_feature['properties']['name'] = key
       this_feature['properties']['groundstationRTT'] = {}
+      this_feature['properties']['groundstationDistance'] = {}
       this_feature['properties']['network'] = random.choice(networks)
       out.append(this_feature)
   else:
