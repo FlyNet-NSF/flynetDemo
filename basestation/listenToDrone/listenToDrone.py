@@ -186,7 +186,7 @@ def main(args):
       basestationData['net_path'] = pathList
       dronePathName = pathList[0]['link'][0] + "_" + pathList[0]['link'][1] + "_link"
       groundstationPathName = pathList[1]['link'][0] + "_" + pathList[1]['link'][1] + "_link"
-    
+      
       #{"net_path": [{"link": ["drone", "ct_-95.99335448724159_32.034022276430406"], "weight": 1.1584434516601756, "latency": 6.922172583008778, "bw": 34, "load": 0}, {"link": ["ct_-95.99335448724159_32.034022276430406", "gs_-96.12810614594274_32.07824729154417"], "weight": 21.272701295720545, "latency": 13.637583800437639, "bw": 366.66498732372645, "load": 20}]
     
       submitToDrone(args, dronechannel, basestationData)
@@ -244,10 +244,18 @@ def normalize(parameters):
   bw = parameters[1]
   load = parameters[2]
 
-  rtt = (100-rtt) / 1000  # RTT.... low numbers are better so invert...
-  bw = bw / 1000  # BW
+  rtt = (10-rtt)  # RTT.... low numbers are better so invert...
+  bw = bw / 100  # BW
   #load = load / 100  # Load
-  load = (100-load) / 100 #Load... because high numbers are bad, we invert it in the normalization as a precursor to applying the weights... 
+  load = (100-load) / 10 #Load... because high numbers are bad, we invert it in the normalization as a precursor to applying the weights... 
+  return [rtt, bw, load]
+
+def normalize_alt(parameters):  #alternate normalization, mainly for bandwidth differences between drone-> tower and tower-> ground_stations
+  rtt = parameters[0]
+  bw = parameters[1]
+  load = parameters[2]
+  rtt = (10-rtt)  # RTT.... low numbers are better so invert...
+  load = (100-load) / 10 #Load... because high numbers are bad, we invert it in the normalization as a precursor to applying the weights...
   return [rtt, bw, load]
 
 def calculateWeights(towers, stations):
@@ -258,13 +266,10 @@ def calculateWeights(towers, stations):
   
   for tower in towers:
     for station in stations:
-      # SIMULATION (weight calculation)
-      tower_to_gs = Geodesic.WGS84.Inverse(tower['geometry']['coordinates'][1], tower['geometry']['coordinates'][0], station['geometry']['coordinates'][1], station['geometry']['coordinates'][0])
-      tower_to_gs_distance = tower_to_gs['s12']
-      rtt = station['properties']['rtt']
+      rtt = station['properties']['towerRTT'][tower['properties']['name']]
       #bw = random.random() * 1000  # up to 1000mb link bandwidth
       client = iperf3.Client()
-      client.server_hostname = '192.5.86.166'
+      client.server_hostname = station['properties']['ipaddress']
       client.port = 5201
       client.duration = 1
       client.json_output = True
@@ -311,17 +316,15 @@ def calculateWeightsGeoJSON(droneData, towers, stations):
       this_link['properties'] = {}
       this_link['properties']['classification'] = "networkPath"
       this_link['properties']['name'] = tower['properties']['name'] + "_" + station['properties']['name'] + "_link" 
-      tower_to_gs = Geodesic.WGS84.Inverse(tower['geometry']['coordinates'][1], tower['geometry']['coordinates'][0], station['geometry']['coordinates'][1], station['geometry']['coordinates'][0])
-      tower_to_gs_distance = tower_to_gs['s12']
-      #rtt = tower_to_gs_distance / 1000  # calculate RTT with some randomness                                                                             
-      rtt = station['properties']['rtt']
+      rtt = station['properties']['towerRTT'][tower['properties']['name']]
       client = iperf3.Client()
-      client.server_hostname = '192.5.86.166' #change me... ideally read out of worker public.json file
+      client.server_hostname = station['properties']['ipaddress'] #change me... ideally read out of worker public.json file
       client.port = 5201
       client.duration = 1
       client.json_output = True
       result = client.run()
       bw = result.sent_Mbps
+      del client
       load = station['properties']['load']
       #bw = random.random() * 1000  # up to 1000mb link bandwidth 
 
@@ -344,7 +347,7 @@ def calculateWeightsGeoJSON(droneData, towers, stations):
     this_link['geometry']['coordinates'].append(droneData['properties']['dynamicProperties']['location']['coordinates'])
     this_link['geometry']['coordinates'].append(this_tower_ll)
     parameters = [tower['properties']['rtt'], tower['properties']['bandwidth'], 0]
-    param_norm = normalize(parameters)
+    param_norm = normalize_alt(parameters)
     weighted_params = [a * b for a, b in zip(weights, param_norm)]
     total_weight = sum(weighted_params)
     this_link['properties'] = {}
