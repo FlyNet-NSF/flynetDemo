@@ -123,23 +123,26 @@ def main(args):
     for tower in cell_towers:
       towerDistanceCalc = Geodesic.WGS84.Inverse(currentLat, currentLon, tower['geometry']['coordinates'][1], tower['geometry']['coordinates'][0])
       towerDistance = towerDistanceCalc['s12']
+      tower['properties']['distance'] = towerDistance
       signal = 50 + (int(towerDistance / 1000) * 5) + random.randint(0,10) # calculate signal with some randomness (function of distance)... should max out around 110dB
       tower['properties']['signal'] = signal
-      rtt = int(towerDistance / 3000) + random.randint(0,5)  # calculate RTT with some randomness (factor of distance)
+      rtt = int(towerDistance / 2000) + random.randint(0,5)  # calculate RTT with some randomness (factor of distance)
       tower['properties']['rtt'] = rtt
 
       if 'bw' not in tower:
         bw = 10 * ((50/signal) * (50/signal)) #if signal is maxed out at 50dB this should yield 10mbps, falling off exponentially
         tower['properties']['bandwidth'] = bw
 
+      for station in ground_stations:
+        towerToStationDistanceCalc = Geodesic.WGS84.Inverse(station['geometry']['coordinates'][1], station['geometry']['coordinates'][0], tower['geometry']['coordinates'][1], tower['geometry']['coordinates'][0])
+        towerToStationDistance = towerToStationDistanceCalc['s12']
+        towerToStationRTT = int(towerToStationDistance / 3000) + random.randint(0,5)
+        tower['properties']['groundstationRTT'] = {}
+        tower['properties']['groundstationRTT'][station['properties']['name']] = towerToStationRTT
+        station['properties']['towerRTT'] = {}
+        station['properties']['towerRTT'][tower['properties']['name']] = towerToStationRTT
+        
     droneData['properties']['userProperties']['celltowers']['features'] = cell_towers
-
-    for station in ground_stations:
-      stationDistanceCalc = Geodesic.WGS84.Inverse(currentLat, currentLon, station['geometry']['coordinates'][1], station['geometry']['coordinates'][0])
-      stationDistance = stationDistanceCalc['s12']
-      rtt = int(stationDistance / 3000) + random.randint(0,5)  # calculate RTT with some randomness (factor of distance)
-      station['properties']['rtt'] = rtt
-
     droneData['properties']['userProperties']['groundstations']['features'] = ground_stations
 
     drone_flights = [] #clear out the list of flights for now... ideally we'd just update a flight already existing in the list
@@ -158,7 +161,7 @@ def main(args):
     #droneMessage = droneData
     submitToBasestation(args, basechannel, drones)
 
-    time.sleep(5)
+    time.sleep(10)
   
   print("Flight is complete.  Exiting")
   sys.exit()
