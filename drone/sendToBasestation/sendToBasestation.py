@@ -139,8 +139,12 @@ def main(args):
         towerToStationRTT = int(towerToStationDistance / 3000) + random.randint(0,5)
         tower['properties']['groundstationRTT'] = {}
         tower['properties']['groundstationRTT'][station['properties']['name']] = towerToStationRTT
+        tower['properties']['groundstationDistance'] = {}
+        tower['properties']['groundstationDistance'][station['properties']['name']] = towerToStationDistance
         station['properties']['towerRTT'] = {}
         station['properties']['towerRTT'][tower['properties']['name']] = towerToStationRTT
+        station['properties']['towerDistance'] = {}
+        station['properties']['groundstationDistance'][tower['properties']['name']] = towerToStationDistance
         
     droneData['properties']['userProperties']['celltowers']['features'] = cell_towers
     droneData['properties']['userProperties']['groundstations']['features'] = ground_stations
