@@ -141,7 +141,31 @@ def main(args):
         tower['properties']['groundstationDistance'][station['properties']['name']] = towerToStationDistance
         station['properties']['towerRTT'][tower['properties']['name']] = towerToStationRTT
         station['properties']['towerDistance'][tower['properties']['name']] = towerToStationDistance
-        
+
+    #find the closest tower to the drone
+    nearestTowerDistance = 999999999 #huge val
+    nearestCellTower = ""
+    for tower in cell_towers:
+      if tower['properties']['distance'] < nearestTowerDistance:
+        nearestTowerDistance = tower['properties']['distance']
+        nearestCellTower = tower['properties']['name']
+
+    #denote it to the celltower object
+    for tower in cell_towers:
+      if tower['properties']['name'] == nearestCellTower:
+        tower['properties']['nearestCellTower'] = "true"
+      else:
+        tower['properties']['nearestCellTower'] = "false"
+
+      #denote the closest ground station to the tower
+      nearestGroundstationDistance = 999999999
+      nearestGroundstation = ""
+      for key in tower['properties']['groundstationDistance'].keys():
+        if tower['properties']['groundstationDistance'][key] < nearestGroundstationDistance:
+          nearestGroundstationDistance = tower['properties']['groundstationDistance'][key]
+          nearestGroundstation = key
+        tower['properties']['nearestGroundStation'] = nearestGroundstation
+     
     droneData['properties']['userProperties']['celltowers']['features'] = cell_towers
     droneData['properties']['userProperties']['groundstations']['features'] = ground_stations
 
