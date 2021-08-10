@@ -29,6 +29,12 @@ def readConfig(file):
   return config['properties']
 
 def main(args):
+
+  #open a csv file to keep track of scores      
+  csvfile = open('./scores.csv', 'w', newline='')
+  rowwriter = csv.writer(csvfile, delimiter=',')
+  rowwriter.writerow(['bestTower', 'bestStation', 'bestTotal', 'nearestTower', 'nearestStation', 'nearestTotal'])
+  
   credentials = pika.PlainCredentials(args.rabbituser, args.rabbitpass)
   #both currently using same credentials... 
 
@@ -43,11 +49,6 @@ def main(args):
   #ground_stations = []
   #drone_flights = []
   update_no = 0
-
-  #open a csv file to keep track of scores                                                                                                                                           
-  csvfile = open('./scores.csv', 'w', newline='')
-  rowwriter = csv.writer(csvfile, delimiter=',')
-  rowwriter.writerow('bestTower', 'bestStation', 'bestTotal', 'nearestTower', 'nearestStation', 'nearestTotal')
   
   def callback(ch, method, properties, body):
     #nonlocal drone_flights
@@ -214,15 +215,18 @@ def main(args):
         if (tower['properties']['nearestCellTower'] == "true"):
           nearestTowerName = tower['properties']['name']
           nearestGroundStationName = tower['properties']['nearestGroundStation']
-      nearestDronePathName = "drone_" + nearestTowerName
-      nearestGroundstationPathName = nearestTowerName + "_" + nearestGroundStationName
-
+      nearestDronePathName = "drone_" + nearestTowerName + "_link"
+      nearestGroundstationPathName = nearestTowerName + "_" + nearestGroundStationName + "_link"
+      #print("nearestDronePathName: " + nearestDronePathName)
+      #print("nearestGroundstationPathName: " + nearestGroundstationPathName)
       nonlocal rowwriter
   
       for thisLink in graphGeoJSON:
-        if thisLink['properties'] == nearestDronePathName:
+        #print("thisLinkName: " + thisLink['properties']['name'])
+        
+        if thisLink['properties']['name'] == nearestDronePathName:
           nearestDronePathWeight = thisLink['properties']['weight']
-        elif thisLink['properties'] == nearestGroundstationPathName:
+        elif thisLink['properties']['name'] == nearestGroundstationPathName:
           nearestGroundstationPathWeight = thisLink['properties']['weight']
         
         if thisLink['properties']['name'] == dronePathName or thisLink['properties']['name'] == groundstationPathName:
@@ -239,7 +243,7 @@ def main(args):
       nearestTotal = nearestDronePathWeight + nearestGroundstationPathWeight
       bestTotal = bestDronePathWeight + bestGroundstationPathWeight
       
-      rowwriter.writerow(bestDronePathWeight, bestGroundstationPathWeight, bestTotal, nearestDronePathWeight, nearestGroundstationPathWeight, nearestTotal)
+      rowwriter.writerow([bestDronePathWeight, bestGroundstationPathWeight, bestTotal, nearestDronePathWeight, nearestGroundstationPathWeight, nearestTotal])
       
       jsonDict = {
         "drone": droneData,
