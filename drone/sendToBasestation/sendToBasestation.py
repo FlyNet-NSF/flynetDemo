@@ -137,14 +137,10 @@ def main(args):
         towerToStationDistanceCalc = Geodesic.WGS84.Inverse(station['geometry']['coordinates'][1], station['geometry']['coordinates'][0], tower['geometry']['coordinates'][1], tower['geometry']['coordinates'][0])
         towerToStationDistance = towerToStationDistanceCalc['s12']
         towerToStationRTT = int(towerToStationDistance / 3000) + random.randint(0,5)
-        tower['properties']['groundstationRTT'] = {}
         tower['properties']['groundstationRTT'][station['properties']['name']] = towerToStationRTT
-        tower['properties']['groundstationDistance'] = {}
         tower['properties']['groundstationDistance'][station['properties']['name']] = towerToStationDistance
-        station['properties']['towerRTT'] = {}
         station['properties']['towerRTT'][tower['properties']['name']] = towerToStationRTT
-        station['properties']['towerDistance'] = {}
-        station['properties']['groundstationDistance'][tower['properties']['name']] = towerToStationDistance
+        station['properties']['towerDistance'][tower['properties']['name']] = towerToStationDistance
         
     droneData['properties']['userProperties']['celltowers']['features'] = cell_towers
     droneData['properties']['userProperties']['groundstations']['features'] = ground_stations
@@ -203,6 +199,7 @@ def generateCellTowers(location, existing = []):
       this_feature['properties'] = {}
       this_feature['properties']['classification'] = "celltower"
       this_feature['properties']['name'] = key
+      this_feature['properties']['groundstationRTT'] = {}
       this_feature['properties']['network'] = random.choice(networks)
       out.append(this_feature)
   else:
@@ -216,7 +213,7 @@ def generateCellTowers(location, existing = []):
         existing.remove(tower)
 
 
-    # add stations if needed
+    # add towers if needed
     for i in range(getGenCount()):
       rand_distance = distance_limit - random.random() * (distance_limit / 200)  # generate a distance on the edge of the range of the drone
       rel_bearing = random.random() * 180 - 90  # calculate a random relative heading between -90 and 90 degrees from the drone
@@ -236,6 +233,8 @@ def generateCellTowers(location, existing = []):
       this_feature['properties'] = {}
       this_feature['properties']['classification'] = "celltower"
       this_feature['properties']['name'] = key
+      this_feature['properties']['groundstationRTT'] = {}
+      this_feature['properties']['groundstationDistance'] = {}
       this_feature['properties']['network'] = random.choice(networks)
       out.append(this_feature)
   return out
@@ -271,6 +270,8 @@ def generateGroundStations(location, existing = []):
       this_station['properties']['ipaddress'] = assignIPAddr(existing)
       this_station['properties']['classification'] = "groundstation"
       this_station['properties']['name'] = key
+      this_station['properties']['towerRTT'] = {}
+      this_station['properties']['towerDistance'] = {}
       this_station['properties']['load'] = random.randint(0, 100);
       out.append(this_station)
   return out
