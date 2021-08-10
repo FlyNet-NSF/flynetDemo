@@ -12,6 +12,7 @@ import random
 import time
 import socket
 import iperf3
+import csv
 from datetime import datetime
 from argparse import ArgumentParser
 from os import path
@@ -42,6 +43,11 @@ def main(args):
   #ground_stations = []
   #drone_flights = []
   update_no = 0
+
+  #open a csv file to keep track of scores                                                                                                                                           
+  csvfile = open('./scores.csv', 'w', newline='')
+  rowwriter = csv.writer(csvfile, delimiter=',')
+  rowwriter.writerow('bestTower', 'bestStation', 'bestTotal', 'nearestTower', 'nearestStation', 'nearestTotal')
   
   def callback(ch, method, properties, body):
     #nonlocal drone_flights
@@ -186,7 +192,8 @@ def main(args):
       basestationData['net_path'] = pathList
       dronePathName = pathList[0]['link'][0] + "_" + pathList[0]['link'][1] + "_link"
       groundstationPathName = pathList[1]['link'][0] + "_" + pathList[1]['link'][1] + "_link"
-      
+      #print("dronePathName: " + dronePathName)
+      #print("groundstationPathName: " + groundstationPathName)
       #{"net_path": [{"link": ["drone", "ct_-95.99335448724159_32.034022276430406"], "weight": 1.1584434516601756, "latency": 6.922172583008778, "bw": 34, "load": 0}, {"link": ["ct_-95.99335448724159_32.034022276430406", "gs_-96.12810614594274_32.07824729154417"], "weight": 21.272701295720545, "latency": 13.637583800437639, "bw": 366.66498732372645, "load": 20}]
     
       submitToDrone(args, dronechannel, basestationData)
@@ -200,13 +207,40 @@ def main(args):
       linkCollection = {}
       linkCollection['type'] = "FeatureCollection"
       linkCollection['features'] = []
+
+      nearestTowerName = ""
+      nearestGroundStationName = ""
+      for tower in towers:
+        if (tower['properties']['nearestCellTower'] == "true"):
+          nearestTowerName = tower['properties']['name']
+          nearestGroundStationName = tower['properties']['nearestGroundStation']
+      nearestDronePathName = "drone_" + nearestTowerName
+      nearestGroundstationPathName = nearestTowerName + "_" + nearestGroundStationName
+
+      nonlocal rowwriter
+  
       for thisLink in graphGeoJSON:
+        if thisLink['properties'] == nearestDronePathName:
+          nearestDronePathWeight = thisLink['properties']['weight']
+        elif thisLink['properties'] == nearestGroundstationPathName:
+          nearestGroundstationPathWeight = thisLink['properties']['weight']
+        
         if thisLink['properties']['name'] == dronePathName or thisLink['properties']['name'] == groundstationPathName:
           thisLink['properties']['preferredLink'] = "true"
         else:
           thisLink['properties']['preferredLink'] = "false"
+
+        if thisLink['properties']['name'] == dronePathName:
+          bestDronePathWeight = thisLink['properties']['weight']
+        elif thisLink['properties']['name'] == groundstationPathName:
+          bestGroundstationPathWeight = thisLink['properties']['weight']
         linkCollection['features'].append(thisLink)
 
+      nearestTotal = nearestDronePathWeight + nearestGroundstationPathWeight
+      bestTotal = bestDronePathWeight + bestGroundstationPathWeight
+      
+      rowwriter.writerow(bestDronePathWeight, bestGroundstationPathWeight, bestTotal, nearestDronePathWeight, nearestGroundstationPathWeight, nearestTotal)
+      
       jsonDict = {
         "drone": droneData,
         "stations": ground_stations,
