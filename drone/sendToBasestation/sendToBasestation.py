@@ -88,7 +88,7 @@ def main(args):
   droneData['geometry']['coordinates'].append(endTuple)
   
   while currentBattery > 60:
-    print("currentBattery: " + currentBattery)
+    print("currentBattery: " + str(currentBattery))
     # update drone data
     droneData['properties']['userProperties']['batterylife'] = currentBattery
 
