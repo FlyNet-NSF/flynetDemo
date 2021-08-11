@@ -40,7 +40,7 @@ def main(args):
   currentTuple = [currentLon, currentLat, currentAlt]
   endTuple = [endLon, endLat, currentAlt]
   #currentBattery = random.randint(50, 100)
-  currentBattery = 100
+  currentBattery = 1000 #10 batteries... go real far this run
   endless = 0
 
   drone_flights = [] #in case we want more than one
@@ -88,7 +88,7 @@ def main(args):
   droneData['geometry']['coordinates'].append(endTuple)
   
   while currentBattery > 60:
-
+    print("currentBattery: " + currentBattery)
     # update drone data
     droneData['properties']['userProperties']['batterylife'] = currentBattery
 
@@ -164,7 +164,7 @@ def main(args):
         if tower['properties']['groundstationDistance'][key] < nearestGroundstationDistance:
           nearestGroundstationDistance = tower['properties']['groundstationDistance'][key]
           nearestGroundstation = key
-        tower['properties']['nearestGroundStation'] = nearestGroundstation
+      tower['properties']['nearestGroundStation'] = nearestGroundstation
      
     droneData['properties']['userProperties']['celltowers']['features'] = cell_towers
     droneData['properties']['userProperties']['groundstations']['features'] = ground_stations
