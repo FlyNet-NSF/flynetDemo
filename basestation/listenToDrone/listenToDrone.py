@@ -71,6 +71,8 @@ def main(args):
       ground_stations = droneData['properties']['userProperties']['groundstations']['features']
       graph = calculateWeights(towers, ground_stations)
       graphGeoJSON = calculateWeightsGeoJSON(droneData, towers, ground_stations)
+
+
       rtt, prevs = shortestPath(graph, "drone")
       
       max_val = float('inf')
@@ -298,7 +300,8 @@ def normalize_alt(parameters):  #alternate normalization, mainly for bandwidth d
 
 def calculateWeights(towers, stations):
   # weights for calculating overall weight
-  weights = [20, 30, 50]  # weights (rtt, bw, load)
+  towerweights = [20, 60, 20]
+  stationweights = [20, 20, 60]  # weights (rtt, bw, load)
 
   graph = defaultdict(list)
   
@@ -318,7 +321,7 @@ def calculateWeights(towers, stations):
 
       parameters = [rtt, bw, load]
       param_norm = normalize(parameters)
-      weighted_params = [a * b for a, b in zip(weights, param_norm)]
+      weighted_params = [a * b for a, b in zip(stationweights, param_norm)]
       total_weight = sum(weighted_params)
       # END SIMULATION
 
@@ -327,7 +330,7 @@ def calculateWeights(towers, stations):
     
     parameters = [tower['properties']['rtt'], tower['properties']['bandwidth'], 0]
     param_norm = normalize(parameters)
-    weighted_params = [a * b for a, b in zip(weights, param_norm)]
+    weighted_params = [a * b for a, b in zip(towerweights, param_norm)]
     total_weight = sum(weighted_params)
 
     graph['drone'].append([tower['properties']['name'], total_weight, parameters])  # add drone node
@@ -337,7 +340,8 @@ def calculateWeights(towers, stations):
 
 def calculateWeightsGeoJSON(droneData, towers, stations):
   # weights for calculating overall weight                                                                                                                 
-  weights = [20, 30, 50]  # weights (rtt, bw, load)                                                                                                        
+  towerweights = [20, 60, 20]
+  stationweights = [20, 20, 60]  # weights (rtt, bw, load)                                                                                                        
   graphGeoJSON = []
   
   for tower in towers:
@@ -368,7 +372,7 @@ def calculateWeightsGeoJSON(droneData, towers, stations):
 
       parameters = [rtt, bw, load]
       param_norm = normalize(parameters)
-      weighted_params = [a * b for a, b in zip(weights, param_norm)]
+      weighted_params = [a * b for a, b in zip(stationweights, param_norm)]
       total_weight = sum(weighted_params)
       # END SIMULATION                                                                                                                                     
       this_link['properties']['weight'] = total_weight
@@ -386,7 +390,7 @@ def calculateWeightsGeoJSON(droneData, towers, stations):
     this_link['geometry']['coordinates'].append(this_tower_ll)
     parameters = [tower['properties']['rtt'], tower['properties']['bandwidth'], 0]
     param_norm = normalize_alt(parameters)
-    weighted_params = [a * b for a, b in zip(weights, param_norm)]
+    weighted_params = [a * b for a, b in zip(towerweights, param_norm)]
     total_weight = sum(weighted_params)
     this_link['properties'] = {}
     this_link['properties']['classification'] = "networkPath"
