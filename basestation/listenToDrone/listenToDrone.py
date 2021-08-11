@@ -69,137 +69,157 @@ def main(args):
       
       towers = droneData['properties']['userProperties']['celltowers']['features']
       ground_stations = droneData['properties']['userProperties']['groundstations']['features']
-      graph = calculateWeights(towers, ground_stations)
+      #graph = calculateWeights(towers, ground_stations)
       graphGeoJSON = calculateWeightsGeoJSON(droneData, towers, ground_stations)
 
-
-      rtt, prevs = shortestPath(graph, "drone")
+      maxscore = 0
+      besttower = ""
+      beststation = ""
+      for this_link in graphGeoJSON:
+        thisscore = 0
+        if this_link['properties']['startpoint'] == "drone":
+          thistowerscore = this_link['properties']['weight']
+          this_tower = this_link['properties']['endpoint']
+          for next_link in graphGeoJSON:
+            if next_link['properties']['startpoint'] == this_tower:
+              this_station = next_link['properties']['endpoint']
+              thisstationscore = next_link['properties']['station']
+              totalscore = thistowerscore + thisstationscore
+              if totalscore > maxscore:
+                maxscore = totalscore
+                besttower = this_tower
+                beststation = this_station
       
-      max_val = float('inf')
-      max_element = None
-      for node in rtt:
-        if node.startswith("gs_"):
-          max_val = rtt[node]
-          max_element = node
+
+      #rtt, prevs = shortestPath(graph, "drone")
+      
+      #max_val = float('inf')
+      #max_element = None
+      #for node in rtt:
+      #  if node.startswith("gs_"):
+      #    max_val = rtt[node]
+      #    max_element = node
           
-      station_to_use = max_element
-      links = getPath(prevs, station_to_use)
+      #station_to_use = max_element
+      #links = getPath(prevs, station_to_use)
 
-      pathList = []
+      #pathList = []
       
-      for link in links:
+      #for link in links:
         # loop through each link in the network (shortest path)
-        source = link[0]
-        dest = link[1]
+       # source = link[0]
+       # dest = link[1]
 
-        dest_node = None
-        source_neighbors = graph[source]
-        for neighbor in source_neighbors:
-          if neighbor[0] == dest:
+        #dest_node = None
+        #source_neighbors = graph[source]
+        #for neighbor in source_neighbors:
+        #  if neighbor[0] == dest:
             # found neighbor
-            dest_node = neighbor
+         #   dest_node = neighbor
 
-        if dest_node is None:
-          print("Couldn't find node?")
-          exit(1)
+        #if dest_node is None:
+         # print("Couldn't find node?")
+          #exit(1)
 
-        new_dict = {
-          'link': link,
-          'weight': dest_node[1],
-          'latency': dest_node[2][0],
-          'bw': dest_node[2][1],
-          'load': dest_node[2][2]
-        }
+        #new_dict = {
+        #  'link': link,
+        #  'weight': dest_node[1],
+        #  'latency': dest_node[2][0],
+        #  'bw': dest_node[2][1],
+        #  'load': dest_node[2][2]
+        #}
 
-        pathList.append(new_dict)
-
-      prometheusQueryURL = 'http://dynamo-broker1.exogeni.net:9090/api/v1/query?query='
-      workerinfo = getWorkerInfo()
-      for workerinf in workerinfo:
-        print("worker: " + workerinf['name'] + " address: " + workerinf['ipaddress'])
+        #pathList.append(new_dict)
+        
+      #prometheusQueryURL = 'http://dynamo-broker1.exogeni.net:9090/api/v1/query?query='
+      #workerinfo = getWorkerInfo()
+      #for workerinf in workerinfo:
+        #print("worker: " + workerinf['name'] + " address: " + workerinf['ipaddress'])
         #worker_rtt = getWorkerRTT_socket(workerinf['ipaddress'], 9100, 4)
         #print("worker: " + workerinf['name'] + " address: " + workerinf['ipaddress']
-        statusQueryURL = prometheusQueryURL + 'up{instance="' + workerinf['ipaddress'] + ':9100"}'
-        response = requests.get(statusQueryURL)
-        if response.status_code == 200:
-          connected = 1
-          nodestatusJSON = json.loads(response.content)
-        else:
-          connected = 0
-          print("response status: " + str(response.status_code))
+        #statusQueryURL = prometheusQueryURL + 'up{instance="' + workerinf['ipaddress'] + ':9100"}'
+        #response = requests.get(statusQueryURL)
+        #if response.status_code == 200:
+          #connected = 1
+          #nodestatusJSON = json.loads(response.content)
+        #else:
+          #connected = 0
+          #print("response status: " + str(response.status_code))
           
-        online = 0
-        if connected and nodestatusJSON["status"] is not None and nodestatusJSON["data"] is not None:
-          if (nodestatusJSON["status"] == "success"):
-            querydata = nodestatusJSON["data"]
-            if querydata["result"] is not None:
-              result = querydata["result"]
-              if (result):
-                value = result[0]["value"]
-                status = value[1]
-                if (status == "1"):
-                  print ("node is online")
-                  online = 1
-                else:
-                  print ("node is offline")
-              else:
-                print ("no results present")
-            else:
-              print ("no results present")
-          else:
-            print ("query failed")
-        else:
-          print ("not connected or null result to query")
+        #online = 0
+        #if connected and nodestatusJSON["status"] is not None and nodestatusJSON["data"] is not None:
+          #if (nodestatusJSON["status"] == "success"):
+            #querydata = nodestatusJSON["data"]
+            #if querydata["result"] is not None:
+              #result = querydata["result"]
+              #if (result):
+                #value = result[0]["value"]
+                #status = value[1]
+                #if (status == "1"):
+                  #print ("node is online")
+                  #online = 1
+                #else:
+                  #print ("node is offline")
+              #else:
+                #print ("no results present")
+            #else:
+              #print ("no results present")
+          #else:
+            #print ("query failed")
+        #else:
+          #print ("not connected or null result to query")
 
-        if connected and online:
-          loadQueryURL = prometheusQueryURL + 'node_load1{instance="' + workerinf['ipaddress'] + ':9100"}'
-          response = requests.get(loadQueryURL)
-          if response.status_code == 200:
-            nodeloadJSON = json.loads(response.content)
-            if (nodeloadJSON["status"] == "success") :
-              querydata = nodeloadJSON["data"]
-              result = querydata["result"]
-              if (result):
-                value = result[0]["value"]
-                load = value[1]
-                print ("load: " + load)
-              else:
-                print ("no load results given")
-            else:
-              print ("load query failed")
-          else:
-            print("response status: " + str(response.status_code))
+        #if connected and online:
+          #loadQueryURL = prometheusQueryURL + 'node_load1{instance="' + workerinf['ipaddress'] + ':9100"}'
+          #response = requests.get(loadQueryURL)
+          #if response.status_code == 200:
+            #nodeloadJSON = json.loads(response.content)
+            #if (nodeloadJSON["status"] == "success") :
+              #querydata = nodeloadJSON["data"]
+              #result = querydata["result"]
+              #if (result):
+                #value = result[0]["value"]
+                #load = value[1]
+                #print ("load: " + load)
+              #else:
+                #print ("no load results given")
+            #else:
+              #print ("load query failed")
+          #else:
+            #print("response status: " + str(response.status_code))
             
-          networkQueryURL = prometheusQueryURL + 'rate(node_network_receive_bytes_total{instance="' + workerinf['ipaddress'] + ':9100"}[30s])'
-          response = requests.get(networkQueryURL)
-          if response.status_code == 200:
-            nodenetworkJSON = json.loads(response.content)
-            if (nodenetworkJSON["status"] == "success") :
-              querydata = nodenetworkJSON["data"]
-              result = querydata["result"]
-              if (result):
+          #networkQueryURL = prometheusQueryURL + 'rate(node_network_receive_bytes_total{instance="' + workerinf['ipaddress'] + ':9100"}[30s])'
+          #response = requests.get(networkQueryURL)
+          #if response.status_code == 200:
+            #nodenetworkJSON = json.loads(response.content)
+            #if (nodenetworkJSON["status"] == "success") :
+              #querydata = nodenetworkJSON["data"]
+              #result = querydata["result"]
+              #if (result):
                 #unclear what device to monitor right now
-                value = result[2]["value"]
-                load = value[1]
-                print ("bytes received in the last 30s: " + load)
-              else:
-                print ("no network results given")
-            else:
-              print ("network query failed")
-          else:
-            print("response status: " + str(response.status_code))
+                #value = result[2]["value"]
+                #load = value[1]
+                #print ("bytes received in the last 30s: " + load)
+              #else:
+                #print ("no network results given")
+            #else:
+              #print ("network query failed")
+          #else:
+            #print("response status: " + str(response.status_code))
         
     
     
-      basestationData = {}
-      basestationData['net_path'] = pathList
-      dronePathName = pathList[0]['link'][0] + "_" + pathList[0]['link'][1] + "_link"
-      groundstationPathName = pathList[1]['link'][0] + "_" + pathList[1]['link'][1] + "_link"
+      #basestationData = {}
+      #basestationData['net_path'] = pathList
+      #dronePathName = pathList[0]['link'][0] + "_" + pathList[0]['link'][1] + "_link"
+      #groundstationPathName = pathList[1]['link'][0] + "_" + pathList[1]['link'][1] + "_link"
+      dronePathName = "drone_" + besttower + "_link"
+      groundstationPathName = besttower + "_" + beststation + "_link"
       #print("dronePathName: " + dronePathName)
       #print("groundstationPathName: " + groundstationPathName)
       #{"net_path": [{"link": ["drone", "ct_-95.99335448724159_32.034022276430406"], "weight": 1.1584434516601756, "latency": 6.922172583008778, "bw": 34, "load": 0}, {"link": ["ct_-95.99335448724159_32.034022276430406", "gs_-96.12810614594274_32.07824729154417"], "weight": 21.272701295720545, "latency": 13.637583800437639, "bw": 366.66498732372645, "load": 20}]
     
-      submitToDrone(args, dronechannel, basestationData)
+      #submitToDrone(args, dronechannel, basestationData)
 
       groundstationCollection = {}
       groundstationCollection['type'] = "FeatureCollection"
@@ -247,12 +267,12 @@ def main(args):
       
       rowwriter.writerow([bestDronePathWeight, bestGroundstationPathWeight, bestTotal, nearestDronePathWeight, nearestGroundstationPathWeight, nearestTotal])
       
-      jsonDict = {
-        "drone": droneData,
-        "stations": ground_stations,
-        "weights": graph,
-        "basestation": basestationData
-      }
+      #jsonDict = {
+      #  "drone": droneData,
+      #  "stations": ground_stations,
+      #  "weights": graph,
+      #  "basestation": basestationData
+      #}
 
       droneData['properties']['userProperties']['groundstations'] = groundstationCollection
       droneData['properties']['userProperties']['networklinks'] = linkCollection
@@ -340,7 +360,7 @@ def calculateWeights(towers, stations):
 
 def calculateWeightsGeoJSON(droneData, towers, stations):
   # weights for calculating overall weight                                                                                                                 
-  towerweights = [20, 60, 20]
+  towerweights = [30, 70, 0]
   stationweights = [20, 20, 60]  # weights (rtt, bw, load)                                                                                                        
   graphGeoJSON = []
   
@@ -358,6 +378,8 @@ def calculateWeightsGeoJSON(droneData, towers, stations):
       this_link['properties'] = {}
       this_link['properties']['classification'] = "networkPath"
       this_link['properties']['name'] = tower['properties']['name'] + "_" + station['properties']['name'] + "_link" 
+      this_link['properties']['startpoint'] = tower['properties']['name']
+      this_link['properties']['endpoint'] = station['properties']['name']
       rtt = station['properties']['towerRTT'][tower['properties']['name']]
       client = iperf3.Client()
       client.server_hostname = station['properties']['ipaddress'] #change me... ideally read out of worker public.json file
@@ -376,9 +398,9 @@ def calculateWeightsGeoJSON(droneData, towers, stations):
       total_weight = sum(weighted_params)
       # END SIMULATION                                                                                                                                     
       this_link['properties']['weight'] = total_weight
-      this_link['properties']['rtt'] = param_norm[0]
-      this_link['properties']['bandwidth'] = param_norm[1]
-      #this_link['properties']['load'] = param_norm[2]
+      this_link['properties']['rtt'] = rtt
+      this_link['properties']['bandwidth'] = bw
+      this_link['properties']['load'] = load
       graphGeoJSON.append(this_link)
       
     this_link = {}
@@ -395,10 +417,12 @@ def calculateWeightsGeoJSON(droneData, towers, stations):
     this_link['properties'] = {}
     this_link['properties']['classification'] = "networkPath"
     this_link['properties']['name'] = "drone_" + tower['properties']['name'] + "_link"
+    this_link['properties']['startpoint'] = "drone"
+    this_link['properties']['endpoint'] = tower['properties']['name']
     this_link['properties']['weight'] = total_weight
-    this_link['properties']['rtt'] = param_norm[0]
-    this_link['properties']['bandwidth'] = param_norm[1]
-    this_link['properties']['load'] = param_norm[2]
+    this_link['properties']['rtt'] = parameters[0]
+    this_link['properties']['bandwidth'] = parameters[1]
+    this_link['properties']['load'] = parameters[2]
     graphGeoJSON.append(this_link)
 
   return graphGeoJSON
