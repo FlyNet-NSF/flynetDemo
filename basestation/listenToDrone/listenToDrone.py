@@ -10,7 +10,7 @@ import threading
 import configparser
 import random 
 import time
-import socket
+#import socket
 import iperf3
 import csv
 from datetime import datetime
@@ -42,9 +42,9 @@ def main(args):
   basechannel = baseconnection.channel()
   basechannel.queue_declare(queue=args.basestation_queue, durable=True)
   
-  droneconnection = pika.BlockingConnection(pika.ConnectionParameters(host=args.drone_host, virtual_host=args.drone_vhost, credentials=credentials))
-  dronechannel = droneconnection.channel()
-  dronechannel.queue_declare(queue=args.drone_queue, durable=True)
+  #droneconnection = pika.BlockingConnection(pika.ConnectionParameters(host=args.drone_host, virtual_host=args.drone_vhost, credentials=credentials))
+  #dronechannel = droneconnection.channel()
+  #dronechannel.queue_declare(queue=args.drone_queue, durable=True)
 
   #ground_stations = []
   #drone_flights = []
@@ -83,7 +83,7 @@ def main(args):
           for next_link in graphGeoJSON:
             if next_link['properties']['startpoint'] == this_tower:
               this_station = next_link['properties']['endpoint']
-              thisstationscore = next_link['properties']['station']
+              thisstationscore = next_link['properties']['weight']
               totalscore = thistowerscore + thisstationscore
               if totalscore > maxscore:
                 maxscore = totalscore
@@ -297,8 +297,11 @@ def main(args):
                         on_message_callback=callback)
 
   print(' [*] Waiting for messages. ')
-  basechannel.start_consuming()
-
+  try:
+    basechannel.start_consuming()
+  except KeyboardInterrupt:
+    basechannel.stop_consuming()
+    
 def normalize(parameters):
   rtt = parameters[0]
   bw = parameters[1]
@@ -360,7 +363,7 @@ def calculateWeights(towers, stations):
 
 def calculateWeightsGeoJSON(droneData, towers, stations):
   # weights for calculating overall weight                                                                                                                 
-  towerweights = [30, 70, 0]
+  towerweights = [20, 60, 20]
   stationweights = [20, 20, 60]  # weights (rtt, bw, load)                                                                                                        
   graphGeoJSON = []
   
@@ -393,7 +396,7 @@ def calculateWeightsGeoJSON(droneData, towers, stations):
       #bw = random.random() * 1000  # up to 1000mb link bandwidth 
 
       parameters = [rtt, bw, load]
-      param_norm = normalize(parameters)
+      param_norm = normalize_alt(parameters)
       weighted_params = [a * b for a, b in zip(stationweights, param_norm)]
       total_weight = sum(weighted_params)
       # END SIMULATION                                                                                                                                     
