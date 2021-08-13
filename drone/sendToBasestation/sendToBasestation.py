@@ -185,7 +185,7 @@ def main(args):
     #droneMessage = droneData
     submitToBasestation(args, basechannel, drones)
 
-    time.sleep(10)
+    time.sleep(20)
   
   print("Flight is complete.  Exiting")
   sys.exit()
