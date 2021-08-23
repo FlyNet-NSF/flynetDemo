@@ -1,5 +1,5 @@
 yum update
-yum install -y yum-utils device-mapper-persistent-data lvm2 gcc zlib-devel openssl-devel make gcc
+yum install -y yum-utils device-mapper-persistent-data lvm2 gcc zlib-devel openssl-devel make gcc iperf3
 yum remove -y python3
 yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 yum install -y docker-ce docker-ce-cli containerd.io
