@@ -27,9 +27,12 @@ def main(args):
   droneconnection = pika.BlockingConnection(pika.ConnectionParameters(host=args.drone_host, virtual_host=args.drone_vhost, credentials=credentials))
   dronechannel = droneconnection.channel()
   dronechannel.queue_declare(queue=args.drone_queue, durable=True)
-  outgoingDevice = "eth0"  # subject to change
-  
+  outgoingDevice = "eth2"  # subject to change
+  startframe = 0
+  endframe = 100
   def callback(ch, method, properties, body):
+    nonlocal startframe
+    nonlocal endframe
     basestationCommand = json.loads(body)
     print(" [x] Received %s" % basestationCommand)
     #path = basestationCommand['net_path']
@@ -39,7 +42,7 @@ def main(args):
     outgoing_bw = round(basestationCommand['bandwidth'])
     outgoing_latency = round(basestationCommand['rtt'])
     outgoing_destination = basestationCommand['ipaddress']
-    
+    outgoing_address = 'tcp://' + outgoing_destination + ':23000'
     if os.geteuid() != 0:
       print("Not running as root!")
       exit(1)
@@ -52,7 +55,19 @@ def main(args):
     
     #now send video to somewhere
     stream = ffmpeg.input(args.data)
-    
+    ffmpeg_out = (
+      ffmpeg
+      .concat(stream.trim(start_frame=startframe, end_frame=endframe))
+      .output(outgoing_address, vcodec='mpeg4', f='mpegts')
+      .global_args('-report')
+      .run_async(pipe_stdout=True)
+    )
+    ffmpeg_out.wait()
+    startframe = startframe + 100
+    endframe = endframe + 100
+    if endframe > 1400:
+      print("video sending complete")
+      os._exit(0)
   dronechannel.basic_consume(queue=args.drone_queue,
                         auto_ack=True,
                         on_message_callback=callback)
@@ -62,7 +77,7 @@ def main(args):
 
 def handleArguments(properties):
   parser = ArgumentParser()
-  parser.add_argument("-D", "--data", dest="data", default=properties['videodata'],
+  parser.add_argument("-D", "--data", dest="data", default=properties['video_data'],
                       type=str, help="Path to the video data file")
   parser.add_argument("-u", "--rabbituser", dest="rabbituser", default=properties['rabbituser'],
                       type=str, help="The username for RabbitMQ.  Default is in the config file.")
