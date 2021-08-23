@@ -1,0 +1,21 @@
+kind: ClusterConfiguration
+apiVersion: kubeadm.k8s.io/v1beta3
+kubernetesVersion: v1.21.0
+---
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+cgroupDriver: cgroupfs 
+
+kind: InitConfiguration
+apiVersion: kubeadm.k8s.io/v1beta3
+localAPIEndpoint:
+  advertiseAddress: REPLACE
+  bindPort: 6443
+
+
+kind: ClusterConfiguration
+apiVersion: kubeadm.k8s.io/v1beta3
+networking:
+  dnsDomain: cluster.local
+  podSubnet: 10.244.0.0/16
+  serviceSubnet: 10.96.0.0/12
