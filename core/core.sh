@@ -17,7 +17,6 @@ nextip(){
 
 #yum update
 yum install -y yum-utils device-mapper-persistent-data lvm2 gcc zlib-devel openssl-devel firewalld
-#yum remove python3
 
 #add user
 adduser -d /home/core -m core
@@ -46,7 +45,6 @@ EOF
 yum install -y kubelet kubeadm kubectl
 systemctl enable kubelet
 systemctl start kubelet
-#hostnamectl set-hostname master-node
 
 #set aliases
 echo $STARTIP master.flynetdemo.edu master-node node0 master0 submit0 core0 core >> /etc/hosts
@@ -56,26 +54,6 @@ for i in $(seq $WORKERS); do
     echo $WORKERIP worker$i.flynetdemo.edu worker-node$i node$i worker$i >> /etc/hosts
 done
 
-#open firewall holes for kubernetes and rabbitmq
-#systemctl enable firewalld
-#systemctl start firewalld
-#firewall-cmd --permanent --add-port=22/tcp
-#firewall-cmd --permanent --add-port=2379-2380/tcp
-#firewall-cmd --permanent --add-port=4369/tcp
-#firewall-cmd --permanent --add-port=5671-5672/tcp
-#firewall-cmd --permanent --add-port=6443/tcp
-#firewall-cmd --permanent --add-port=8883/tcp
-#firewall-cmd --permanent --add-port=10000/tcp
-#firewall-cmd --permanent --add-port=10002/tcp
-#firewall-cmd --permanent --add-port=10250/tcp
-#firewall-cmd --permanent --add-port=10251/tcp
-#firewall-cmd --permanent --add-port=10252/tcp
-#firewall-cmd --permanent --add-port=10255/tcp
-#firewall-cmd --permanent --add-port=15672/tcp
-#firewall-cmd --permanent --add-port=25672/tcp
-#firewall-cmd --permanent --add-port=61613-61614/tcp
-
-#firewall-cmd --reload
 cat <<EOF > /etc/sysctl.d/k8s.conf
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
@@ -94,7 +72,8 @@ sed -i '/swap/d' /etc/fstab
 swapoff -a
 
 #initialize kubernetes with flannel for now
-/bin/su - core -c "sudo kubeadm init --apiserver-advertise-address=$STARTIP --pod-network-cidr=10.244.0.0/16"
+sed -i "s/REPLACE/$STARTIP/g" kubeadm-config.yaml
+/bin/su - core -c "sudo kubeadm init --config kubeadm-config.yaml"
 /bin/su - core -c "mkdir -p /home/core/.kube"
 /bin/su - core -c "sudo cp -i /etc/kubernetes/admin.conf /home/core/.kube/config"
 /bin/su - core -c "sudo chown core:core /home/core/.kube/config"
