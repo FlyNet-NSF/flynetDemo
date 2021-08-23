@@ -42,9 +42,9 @@ def main(args):
   basechannel = baseconnection.channel()
   basechannel.queue_declare(queue=args.basestation_queue, durable=True)
   
-  #droneconnection = pika.BlockingConnection(pika.ConnectionParameters(host=args.drone_host, virtual_host=args.drone_vhost, credentials=credentials))
-  #dronechannel = droneconnection.channel()
-  #dronechannel.queue_declare(queue=args.drone_queue, durable=True)
+  droneconnection = pika.BlockingConnection(pika.ConnectionParameters(host=args.drone_host, virtual_host=args.drone_vhost, credentials=credentials))
+  dronechannel = droneconnection.channel()
+  dronechannel.queue_declare(queue=args.drone_queue, durable=True)
 
   #ground_stations = []
   #drone_flights = []
@@ -75,6 +75,9 @@ def main(args):
       maxscore = 0
       besttower = ""
       beststation = ""
+      bestbw = ""
+      bestipaddr = ""
+      bestrtt = ""
       for this_link in graphGeoJSON:
         thisscore = 0
         if this_link['properties']['startpoint'] == "drone":
@@ -89,8 +92,22 @@ def main(args):
                 maxscore = totalscore
                 besttower = this_tower
                 beststation = this_station
-      
+                bestbw = min(this_link['properties']['bandwidth'], next_link['properties']['bandwidth'])
+                for station in ground_stations:
+                  if station['properties']['name'] == beststation:
+                    bestipaddr = station['properties']['ipaddress']
+                    bestrtt = station['properties']['towerRTT'][this_tower]
+                for tower in towers:
+                  if tower['properties']['name'] == this_tower:
+                    bestrtt = bestrtt + tower['properties']['rtt']
 
+      output_json = {
+        'ipaddress': bestipaddr,
+        'bandwidth': bestbw,
+        'rtt': bestrtt
+      }
+
+      submitToDrone(args, dronechannel, output_json) 
       #rtt, prevs = shortestPath(graph, "drone")
       
       #max_val = float('inf')
