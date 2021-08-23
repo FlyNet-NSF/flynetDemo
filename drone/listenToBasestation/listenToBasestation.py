@@ -8,6 +8,7 @@ import os
 import pika
 import threading
 import configparser
+import ffmpeg
 from datetime import datetime
 from argparse import ArgumentParser
 from os import path
@@ -26,16 +27,19 @@ def main(args):
   droneconnection = pika.BlockingConnection(pika.ConnectionParameters(host=args.drone_host, virtual_host=args.drone_vhost, credentials=credentials))
   dronechannel = droneconnection.channel()
   dronechannel.queue_declare(queue=args.drone_queue, durable=True)
-  outgoingDevice = "eth2"  # subject to change
+  outgoingDevice = "eth0"  # subject to change
   
   def callback(ch, method, properties, body):
     basestationCommand = json.loads(body)
     print(" [x] Received %s" % basestationCommand)
-    path = basestationCommand['net_path']
-    first_path = path[0]  # path from drone to tower
-    outgoing_bw = round(first_path['bw'])
-    outgoing_latency = round(first_path['latency'])
-
+    #path = basestationCommand['net_path']
+    #first_path = path[0]  # path from drone to tower
+    #outgoing_bw = round(first_path['bw'])
+    #outgoing_latency = round(first_path['latency'])
+    outgoing_bw = round(basestationCommand['bandwidth'])
+    outgoing_latency = round(basestationCommand['rtt'])
+    outgoing_destination = basestationCommand['ipaddress']
+    
     if os.geteuid() != 0:
       print("Not running as root!")
       exit(1)
@@ -44,10 +48,11 @@ def main(args):
     print("Running command: " + networkModification)
     os.system(networkModification)
 
-    print("Using path:\n " + str(path))
-
+    print("Sending to: " + outgoing_destination)
+    
     #now send video to somewhere
-
+    stream = ffmpeg.input(args.data)
+    
   dronechannel.basic_consume(queue=args.drone_queue,
                         auto_ack=True,
                         on_message_callback=callback)
@@ -57,6 +62,8 @@ def main(args):
 
 def handleArguments(properties):
   parser = ArgumentParser()
+  parser.add_argument("-D", "--data", dest="data", default=properties['videodata'],
+                      type=str, help="Path to the video data file")
   parser.add_argument("-u", "--rabbituser", dest="rabbituser", default=properties['rabbituser'],
                       type=str, help="The username for RabbitMQ.  Default is in the config file.")
   parser.add_argument("-p", "--rabbitpass", dest="rabbitpass", default=properties['rabbitpass'],
