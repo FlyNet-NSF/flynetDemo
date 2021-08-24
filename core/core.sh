@@ -72,8 +72,8 @@ sed -i '/swap/d' /etc/fstab
 swapoff -a
 
 #initialize kubernetes with flannel for now
-sed -i "s/REPLACE/$STARTIP/g" kubeadm-config.yaml
-/bin/su - core -c "sudo kubeadm init --config kubeadm-config.yaml"
+sed -i "s/REPLACE/$STARTIP/g" ./kubeadm-config.yaml
+/bin/su - core -c "sudo kubeadm init --config /root/flynetDemo/core/kubeadm-config.yaml"
 /bin/su - core -c "mkdir -p /home/core/.kube"
 /bin/su - core -c "sudo cp -i /etc/kubernetes/admin.conf /home/core/.kube/config"
 /bin/su - core -c "sudo chown core:core /home/core/.kube/config"
@@ -85,10 +85,11 @@ sed -i "s/REPLACE/$STARTIP/g" kubeadm-config.yaml
 /bin/su - core -c "sudo /home/core/bin/keadm init --advertise-address=\"$STARTIP\" --kube-config=/home/core/.kube/config"
 
 #start rabbitMQ
-cp -r /root/core/* /home/core
-chown -R core /home/core
-chgrp -R core /home/core
-
+/bin/su - core -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/core/docker-compose.yml"
+/bin/su - core -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/core/rabbitmq.tar; /bin/tar -xf rabbitmq.tar"
 /bin/su - core -c "sudo systemctl restart docker" #possibly some strange bug?
 /bin/su - core -c "/usr/local/bin/docker-compose up -d"
+
+#get codes to talk to basestation... these aren't ready yet
+#/bin/su - core -c "/usr/bin/wget https://emmy8.casa.umass.edu/flynetDemo/core/talkToBasestation.tar; /bin/tar -xf talkToBasestation.tar"
 
