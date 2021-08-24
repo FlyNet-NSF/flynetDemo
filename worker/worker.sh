@@ -16,12 +16,24 @@ nextip(){
 }
 
 #yum update
-yum install -y yum-utils device-mapper-persistent-data lvm2 gcc zlib-devel openssl-devel firewalld gcc-c++
+yum install -y yum-utils device-mapper-persistent-data lvm2 gcc zlib-devel openssl-devel firewalld gcc-c++ iperf3
 #yum remove python3
 
 #add user
 adduser -d /home/worker -m worker
 echo 'worker ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+#install ffmpeg
+cd /root
+/usr/bin/wget http://mirror.centos.org/centos/8/PowerTools/x86_64/os/Packages/yasm-1.3.0-7.el8.x86_64.rpm
+yum -y install ./yasm-1.3.0-7.el8.x86_64.rpm
+/usr/bin/wget https://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2
+bunzip2 ffmpeg-snapshot.tar.bz2
+/usr/bin/tar -xf ffmpeg-snapshot.tar
+cd /root/ffmpeg
+./configure
+make
+make install
 
 #install docker
 yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
