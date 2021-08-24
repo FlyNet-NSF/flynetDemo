@@ -3,11 +3,12 @@ yum install -y yum-utils device-mapper-persistent-data lvm2 gcc zlib-devel opens
 yum remove -y python3
 
 #install ffmpeg
-wget http://mirror.centos.org/centos/8/PowerTools/x86_64/os/Packages/yasm-1.3.0-7.el8.x86_64.rpm
-yum install ./yasm-1.3.0-7.el8.x86_64.rpm
-wget https://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2
+cd /root
+/usr/bin/wget http://mirror.centos.org/centos/8/PowerTools/x86_64/os/Packages/yasm-1.3.0-7.el8.x86_64.rpm
+yum -y install ./yasm-1.3.0-7.el8.x86_64.rpm
+/usr/bin/wget https://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2
 bunzip2 ffmpeg-snapshot.tar.bz2
-tar -xf ffmpeg-snapshot.tar
+/usr/bin/tar -xf ffmpeg-snapshot.tar
 cd /root/ffmpeg
 ./configure
 make
