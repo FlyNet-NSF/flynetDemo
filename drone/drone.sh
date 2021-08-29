@@ -52,6 +52,6 @@ mkdir /root/video
 cp -r /root/flynetDemo/drone/* /home/drone
 chown -R drone /home/drone
 chgrp -R drone /home/drone
-reboot
+#reboot
 
 
