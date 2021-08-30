@@ -40,7 +40,7 @@ def main(args):
   currentTuple = [currentLon, currentLat, currentAlt]
   endTuple = [endLon, endLat, currentAlt]
   #currentBattery = random.randint(50, 100)
-  currentBattery = 1000 #10 batteries... go real far this run
+  currentBattery = 100 
   endless = 0
 
   drone_flights = [] #in case we want more than one
@@ -87,7 +87,7 @@ def main(args):
   droneData['geometry']['coordinates'].append(currentTuple)
   droneData['geometry']['coordinates'].append(endTuple)
   
-  while currentBattery > 60:
+  while currentBattery > 0:
     print("currentBattery: " + str(currentBattery))
     # update drone data
     droneData['properties']['userProperties']['batterylife'] = currentBattery
@@ -125,12 +125,12 @@ def main(args):
       towerDistance = towerDistanceCalc['s12']
       tower['properties']['distance'] = towerDistance
       signal = 50 + (int(towerDistance / 1000) * 5) + random.randint(0,10) # calculate signal with some randomness (function of distance)... should max out around 110dB
-      tower['properties']['signal'] = signal
+      tower['properties']['signal'] = signal 
       rtt = int(towerDistance / 2000) + random.randint(0,5)  # calculate RTT with some randomness (factor of distance)
       tower['properties']['rtt'] = rtt
 
       if 'bw' not in tower:
-        bw = 10 * ((50/signal) * (50/signal)) #if signal is maxed out at 50dB this should yield 10mbps, falling off exponentially
+        bw = 10 * ((50/signal) * (50/signal) * (50/signal)) #if signal is maxed out at 50dB this should yield 10mbps, falling off exponentially
         tower['properties']['bandwidth'] = bw
 
       for station in ground_stations:
